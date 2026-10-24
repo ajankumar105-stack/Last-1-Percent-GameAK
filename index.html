@@ -132,6 +132,7 @@
       pointer-events: none; background: rgba(0,0,0,0.5); padding: 6px 14px; border-radius: 8px;
     }
     #eventBanner.show { opacity: 1; }
+    @keyframes profileGlow { from { filter: drop-shadow(0 0 1px #f5d773); } to { filter: drop-shadow(0 0 8px #f5d773); } }
   </style>
 </head>
 <body>
@@ -193,6 +194,13 @@
           <option value="🇺🇸 US">🇺🇸 US</option>
           <option value="🇬🇧 UK">🇬🇧 UK</option>
         </select></div>
+      <div id="competitiveProfile" style="margin:12px 0;padding:12px;border:1px solid #7b5b18;border-radius:10px;background:linear-gradient(135deg,#171f2b,#29200d);">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><b style="color:#f5d773;">🏆 COMPETITIVE PROFILE</b><span id="profileFrameBadge" style="font-size:11px;color:#9aa8b8;">No frame yet</span></div>
+        <div id="profileStars" style="font-size:24px;letter-spacing:3px;margin:6px 0;color:#f5d773;">☆☆☆☆☆</div>
+        <div id="profileStarText" style="font-size:12px;color:#dce4ee;">0 / 5 MVP stars</div>
+        <div id="profileRewardText" style="font-size:11px;color:#9aa8b8;margin-top:5px;">Earn 5 MVP stars to unlock a frame + animated effect for 7 days.</div>
+        <div style="font-size:11px;color:#8a9bb0;margin-top:8px;">Match score: Zombie kills + PvP kills + damage</div>
+      </div>
       <h3 style="font-size:13px;margin:12px 0 4px;color:#f5d773;">Pets</h3>
       <div id="petList" class="grid"></div>
       <h3 style="font-size:13px;margin:12px 0 4px;color:#f5d773;">Skins</h3>
@@ -349,7 +357,7 @@
     { name: 'DEMO Crown Aura', color: '#fd79a8', cost: 0 }
   ];
 
-  let state = { running: false, paused: false, dead: false, level: 1, hp: 100, maxHp: 100, xp: 0, coins: 25, kills: 0, weapon: 0, unlocked: [0], skin: 0, skinUnlocked: [0], pet: 0, name: 'Survivor', country: '🇹🇭 Thailand', highWave: 1 };
+  let state = { running: false, paused: false, dead: false, level: 1, hp: 100, maxHp: 100, xp: 0, coins: 25, kills: 0, weapon: 0, unlocked: [0], skin: 0, skinUnlocked: [0], pet: 0, name: 'Survivor', country: '🇹🇭 Thailand', highWave: 1, mvpStars: 0, profileRewardUntil: 0, competitiveStats: { zombieKills: 0, pvpKills: 0, damage: 0, matches: 0, mvps: 0 } };
   try { const s = JSON.parse(localStorage.getItem('l1p_v3') || 'null'); if (s && typeof s === 'object') state = { ...state, ...s, running: false, paused: false, dead: false }; } catch (e) { localStorage.removeItem('l1p_v3'); }
 
   let player = { x: 0, y: 0, speed: 195, angle: 0, recoil: 0 };
@@ -569,7 +577,41 @@
     $('goStats').textContent = `Wave ${state.level}  •  ${state.kills} kills  •  ${state.coins} coins`;
     setTimeout(() => ui.gameOver.classList.remove('hidden'), 600);
   }
+  function renderCompetitiveProfile() {
+    const now = Date.now();
+    const stars = Math.max(0, Math.min(5, Number(state.mvpStars) || 0));
+    const active = Number(state.profileRewardUntil) > now;
+    const remaining = active ? Math.ceil((state.profileRewardUntil - now) / 86400000) : 0;
+    const starEl = $('profileStars');
+    if (starEl) starEl.textContent = '★'.repeat(stars) + '☆'.repeat(5 - stars);
+    if ($('profileStarText')) $('profileStarText').textContent = `${stars} / 5 MVP stars • ${state.competitiveStats?.mvps || 0} MVP awards`;
+    if ($('profileFrameBadge')) { $('profileFrameBadge').textContent = active ? '✨ REWARD ACTIVE' : (stars >= 5 ? 'Reward expired' : 'No frame yet'); $('profileFrameBadge').style.color = active ? '#f5d773' : '#9aa8b8'; }
+    if ($('profileRewardText')) $('profileRewardText').textContent = active ? `Golden profile frame + animated effect active • about ${remaining} day(s) left.` : 'Earn 5 MVP stars to unlock a frame + animated effect for 7 days.';
+    const card = $('competitiveProfile');
+    if (card) { card.style.borderColor = active ? '#f5d773' : '#7b5b18'; card.style.boxShadow = active ? '0 0 14px #f5d77366' : 'none'; card.style.animation = active ? 'profileGlow 1.8s ease-in-out infinite alternate' : 'none'; }
+  }
+
+  // This function is an integration point for a future trusted multiplayer server.
+  // Do not call it with client-generated match results in a live competitive game.
+  window.applyVerifiedMatchResult = function(result) {
+    if (!result || result.verified !== true || !Array.isArray(result.players) || !result.winnerTeam) return false;
+    const players = result.players.filter(p => p && p.team && p.playerId && Number.isFinite(p.zombieKills) && Number.isFinite(p.pvpKills) && Number.isFinite(p.damage));
+    if (players.length !== 8) return false;
+    const score = p => Math.max(0,p.zombieKills) + Math.max(0,p.pvpKills) + Math.max(0,p.damage);
+    const winners = players.filter(p => p.team === result.winnerTeam).sort((a,b) => score(b)-score(a) || String(a.playerId).localeCompare(String(b.playerId)));
+    if (!winners.length || winners[0].playerId !== result.localPlayerId) return false;
+    state.mvpStars = (Number(state.mvpStars)||0) + 1;
+    state.competitiveStats = state.competitiveStats || { zombieKills:0,pvpKills:0,damage:0,matches:0,mvps:0 };
+    state.competitiveStats.zombieKills += Math.max(0,winners[0].zombieKills);
+    state.competitiveStats.pvpKills += Math.max(0,winners[0].pvpKills);
+    state.competitiveStats.damage += Math.max(0,winners[0].damage);
+    state.competitiveStats.matches += 1; state.competitiveStats.mvps += 1;
+    if (state.mvpStars >= 5) { state.mvpStars -= 5; state.profileRewardUntil = Date.now() + 7*24*60*60*1000; }
+    saveGame(); renderCompetitiveProfile(); return true;
+  };
+
   function updateUI() {
+    renderCompetitiveProfile();
     $('goldText').textContent = state.coins; $('waveLabel').textContent = state.level;
     $('hpText').textContent = Math.ceil(state.hp); $('hpFill').style.width = Math.max(0, state.hp/state.maxHp*100)+'%';
     $('xpFill').style.width = Math.min(100, state.xp)+'%';
