@@ -97,12 +97,51 @@
     #serverStatus { font-size:11px; color:#8a9bb0; text-align:center; margin-top:6px; }
     #serverStatus.online { color:#2ecc71; }
     #serverStatus.offline { color:#e74c3c; }
+
+    #tipBar {
+      position: absolute; top: 0; left: 0; right: 0; z-index: 35;
+      background: linear-gradient(90deg, rgba(15,20,28,0.92), rgba(30,40,55,0.92));
+      border-bottom: 1px solid #3a4a5c;
+      color: #f5d773; font-size: 11px; font-weight: 600;
+      padding: 5px 12px; text-align: center;
+      pointer-events: none; white-space: nowrap; overflow: hidden;
+    }
+    #tipBar span { display: inline-block; animation: tipSlide 14s linear infinite; }
+    @keyframes tipSlide {
+      0% { transform: translateX(100%); }
+      100% { transform: translateX(-100%); }
+    }
+
+    #goalBar {
+      position: absolute; top: 28px; left: 50%; transform: translateX(-50%);
+      z-index: 12; background: rgba(15,20,28,0.85); border: 1px solid #3a4a5c;
+      border-radius: 8px; padding: 4px 12px; font-size: 11px; font-weight: 700;
+      color: #f5d773; pointer-events: none; white-space: nowrap;
+    }
+    #comboText {
+      position: absolute; top: 22%; left: 50%; transform: translateX(-50%);
+      z-index: 14; font-size: 22px; font-weight: 900; color: #ffcf5a;
+      text-shadow: 0 0 12px #ff8b3d; opacity: 0; transition: opacity 0.2s;
+      pointer-events: none;
+    }
+    #comboText.show { opacity: 1; }
+    #eventBanner {
+      position: absolute; top: 18%; left: 50%; transform: translateX(-50%);
+      z-index: 13; font-size: 16px; font-weight: 900; color: #fff;
+      text-shadow: 0 0 10px #9b59b6; opacity: 0; transition: opacity 0.3s;
+      pointer-events: none; background: rgba(0,0,0,0.5); padding: 6px 14px; border-radius: 8px;
+    }
+    #eventBanner.show { opacity: 1; }
   </style>
 </head>
 <body>
+  <div id="tipBar"><span id="tipText">Tip: Hold FIRE to shoot • R to reload • Survive waves • Boss every 5 waves • Night Mode = more loot</span></div>
   <canvas id="game"></canvas>
   <div id="nightOverlay"></div>
   <div id="waveBanner">WAVE 1</div>
+  <div id="goalBar">Next Boss: Wave 5 • Mission: —</div>
+  <div id="comboText">COMBO x2</div>
+  <div id="eventBanner">SUPPLY DROP!</div>
   <div id="joystickZone"><div id="joystickKnob"></div></div>
   <div id="combatControls">
     <button id="reloadBtn" type="button">RELOAD</button>
@@ -247,13 +286,35 @@
   const $ = id => document.getElementById(id);
   const ui = { menu: $('endMenu'), pause: $('pauseMenu'), bag: $('bagMenu'), profile: $('profileMenu'), rank: $('rankMenu'), multi: $('multiMenu'), gameOver: $('gameOverMenu') };
 
+  // Menu pause: any overlay open freezes combat
+  function isMenuOpen() {
+    const ids = ['bagMenu','shopMenu','missionMenu','profileMenu','pauseMenu','rankMenu','multiMenu','tutorialMenu'];
+    return ids.some(id => { const el = $(id); return el && !el.classList.contains('hidden'); });
+  }
+  function openMenu(id) {
+    const el = $(id); if (!el) return;
+    el.classList.remove('hidden');
+    state.paused = true;
+    attackHeld = false; attackReq = false;
+  }
+  function closeMenu(id) {
+    const el = $(id); if (!el) return;
+    el.classList.add('hidden');
+    if (!isMenuOpen() && state.running && !state.dead) state.paused = false;
+  }
+
+
   const weapons = [
-    { name: 'Survivor Pistol', dmg: 22, cost: 0, mag: 12, reload: 1.1, fireRate: 0.22, range: 380, bulletSpeed: 620, kind: 'gun', spread: 0.04, pellets: 1, color: '#ffcf5a' },
-    { name: 'Chicken Launcher', dmg: 38, cost: 180, mag: 6, reload: 1.6, fireRate: 0.45, range: 340, bulletSpeed: 480, kind: 'gun', spread: 0.08, pellets: 1, color: '#f39c12', special: 'explode' },
-    { name: 'Banana Peel Gun', dmg: 18, cost: 220, mag: 15, reload: 1.3, fireRate: 0.18, range: 300, bulletSpeed: 550, kind: 'gun', spread: 0.12, pellets: 1, color: '#f1c40f', special: 'slow' },
-    { name: 'Combat Shotgun', dmg: 16, cost: 550, mag: 6, reload: 1.8, fireRate: 0.55, range: 200, bulletSpeed: 700, kind: 'gun', spread: 0.22, pellets: 6, color: '#e67e22' },
-    { name: 'Laser Disco', dmg: 14, cost: 900, mag: 30, reload: 1.4, fireRate: 0.08, range: 420, bulletSpeed: 900, kind: 'gun', spread: 0.02, pellets: 1, color: '#9b59b6', special: 'pierce' },
-    { name: 'Wasteland Reaper', dmg: 95, cost: 1600, mag: 1, reload: 0.6, fireRate: 0.5, range: 95, bulletSpeed: 0, kind: 'melee', spread: 0, pellets: 1, color: '#ecf0f1' }
+    { name: 'Survivor Pistol', dmg: 28, cost: 0, mag: 12, reload: 1.0, fireRate: 0.20, range: 400, bulletSpeed: 650, kind: 'gun', spread: 0.04, pellets: 1, color: '#ffcf5a' },
+    { name: 'Chicken Launcher', dmg: 55, cost: 400, mag: 6, reload: 1.5, fireRate: 0.42, range: 360, bulletSpeed: 500, kind: 'gun', spread: 0.08, pellets: 1, color: '#f39c12', special: 'explode' },
+    { name: 'Banana Peel Gun', dmg: 32, cost: 550, mag: 16, reload: 1.2, fireRate: 0.16, range: 320, bulletSpeed: 580, kind: 'gun', spread: 0.10, pellets: 1, color: '#f1c40f', special: 'slow' },
+    { name: 'Combat Shotgun', dmg: 24, cost: 1200, mag: 7, reload: 1.7, fireRate: 0.50, range: 210, bulletSpeed: 720, kind: 'gun', spread: 0.20, pellets: 7, color: '#e67e22' },
+    { name: 'Laser Disco', dmg: 22, cost: 2200, mag: 35, reload: 1.3, fireRate: 0.07, range: 450, bulletSpeed: 950, kind: 'gun', spread: 0.02, pellets: 1, color: '#9b59b6', special: 'pierce' },
+    { name: 'Frost SMG', dmg: 18, cost: 3500, mag: 28, reload: 1.4, fireRate: 0.09, range: 380, bulletSpeed: 700, kind: 'gun', spread: 0.06, pellets: 1, color: '#5dade2', special: 'slow' },
+    { name: 'Rocket Fist', dmg: 120, cost: 5500, mag: 4, reload: 2.0, fireRate: 0.70, range: 500, bulletSpeed: 420, kind: 'gun', spread: 0.03, pellets: 1, color: '#e74c3c', special: 'explode' },
+    { name: 'Plasma Rifle', dmg: 48, cost: 8000, mag: 20, reload: 1.5, fireRate: 0.18, range: 480, bulletSpeed: 800, kind: 'gun', spread: 0.03, pellets: 1, color: '#1abc9c', special: 'pierce' },
+    { name: 'Thunder Cannon', dmg: 90, cost: 12000, mag: 5, reload: 2.2, fireRate: 0.65, range: 550, bulletSpeed: 600, kind: 'gun', spread: 0.05, pellets: 1, color: '#f39c12', special: 'explode' },
+    { name: 'Wasteland Reaper', dmg: 160, cost: 18000, mag: 1, reload: 0.55, fireRate: 0.45, range: 110, bulletSpeed: 0, kind: 'melee', spread: 0, pellets: 1, color: '#ecf0f1' }
   ];
   const pets = [
     { name: 'None', desc: 'No companion', cost: 0 },
@@ -277,6 +338,10 @@
   let bullets = [], zombies = [], particles = [], powerups = [], floatingTexts = [];
   let keys = {}, stick = { x: 0, y: 0 };
   let attackHeld = false, attackReq = false;
+
+  let combo = 0, comboTimer = 0, eventTimer = 28, powerTimer = 0, powerMul = 1;
+  let nextBossWave = 5;
+
   let ammo = 12, reloading = false, reloadTimer = 0, fireCD = 0, petTimer = 0;
   let bossSpawned = false, waveAnnounce = 0, shake = 0;
   let audioCtx = null;
@@ -358,7 +423,7 @@
         if (d < wep.range + z.r) {
           const ang = Math.atan2(z.y - player.y, z.x - player.x);
           let diff = Math.abs(ang - player.angle); if (diff > Math.PI) diff = 2*Math.PI - diff;
-          if (diff < 1.1) { hitZombie(z, wep.dmg, wep); for (let i=0;i<5;i++) spawnParticle(z.x,z.y,'#ecf0f1',0.3,5); }
+          if (diff < 1.1) { hitZombie(z, wep.dmg * powerMul, wep); for (let i=0;i<5;i++) spawnParticle(z.x,z.y,'#ecf0f1',0.3,5); }
         }
       });
       shake = 0.25; return;
@@ -368,7 +433,7 @@
     for (let i = 0; i < wep.pellets; i++) {
       const spread = (Math.random() - 0.5) * wep.spread * 2;
       const a = Math.atan2(aimY, aimX) + spread;
-      bullets.push({ x: muzzleX, y: muzzleY, vx: Math.cos(a)*wep.bulletSpeed, vy: Math.sin(a)*wep.bulletSpeed, life: wep.range/wep.bulletSpeed, dmg: wep.dmg, color: wep.color, special: wep.special||null, pierce: wep.special==='pierce'?3:0, r: wep.pellets>1?3:4 });
+      bullets.push({ x: muzzleX, y: muzzleY, vx: Math.cos(a)*wep.bulletSpeed, vy: Math.sin(a)*wep.bulletSpeed, life: wep.range/wep.bulletSpeed, dmg: wep.dmg * powerMul, color: wep.color, special: wep.special||null, pierce: wep.special==='pierce'?3:0, r: wep.pellets>1?3:4 });
     }
     spawnParticle(muzzleX, muzzleY, wep.color, 0.12, 6);
   }
@@ -387,10 +452,22 @@
   }
   function killZombie(z) {
     const coinMul = state.pet === 1 ? 1.6 : 1;
-    const coins = Math.round((z.boss ? 45 : 10 + state.level * 1.5) * coinMul * (nightMode ? 1.35 : 1));
-    state.coins += coins; state.kills++; state.xp += z.boss ? 45 : 18;
+    combo += 1; comboTimer = 2.2;
+    const streakMul = 1 + Math.min(1.5, combo * 0.08);
+    const coins = Math.round((z.boss ? 55 : 12 + state.level * 1.8) * coinMul * (nightMode ? 1.4 : 1) * streakMul * powerMul);
+    state.coins += coins; state.kills++; state.xp += z.boss ? 50 : 20;
     updateMissionProgress('kill', 1);
     if (z.boss) updateMissionProgress('boss', 1);
+    if (combo >= 2) {
+      const ct = $('comboText');
+      if (ct) { ct.textContent = 'COMBO x' + combo + (combo >= 8 ? ' 🔥' : ''); ct.classList.add('show'); }
+    }
+    if (z.type === 'exploder') {
+      // death explosion damages nearby
+      zombies.forEach(oz => { if (oz !== z && dist(z.x,z.y,oz.x,oz.y) < 80) { oz.hp -= 25+state.level*2; spawnParticle(oz.x,oz.y,'#e74c3c',0.3,6); if(oz.hp<=0) killZombie(oz); } });
+      for (let i=0;i<12;i++) spawnParticle(z.x,z.y,'#e74c3c',0.4,7);
+      shake = 0.3;
+    }
     addFloat(z.x, z.y, '+'+coins+'💰', '#f5d773', 15);
     for (let i=0;i<8;i++) spawnParticle(z.x,z.y, z.boss?'#9b59b6':'#476f48', 0.4, 6);
     if (Math.random() < (z.boss ? 0.7 : 0.12)) {
@@ -407,8 +484,25 @@
   function showWaveBanner(txt) { const el = $('waveBanner'); el.textContent = txt; el.classList.add('show'); waveAnnounce = 1.8; }
   function spawnZombie(isBoss = false) {
     const angle = Math.random() * Math.PI * 2, d = Math.max(w,h)*0.55 + 80;
-    const baseHp = 35 + state.level * 12;
-    zombies.push({ x: player.x+Math.cos(angle)*d, y: player.y+Math.sin(angle)*d, hp: isBoss?baseHp*6:baseHp, maxHp: isBoss?baseHp*6:baseHp, speed: isBoss?55:rand(48,78)+state.level*1.2, r: isBoss?26:13, boss: isBoss, slow: 0 });
+    const baseHp = 40 + state.level * 14;
+    let type = 'normal';
+    if (isBoss) type = 'boss';
+    else {
+      const r = Math.random();
+      if (r < 0.15) type = 'fast';
+      else if (r < 0.28) type = 'tank';
+      else if (r < 0.36) type = 'exploder';
+    }
+    let hp = baseHp, speed = rand(48,78)+state.level*1.2, r = 13, color = null;
+    if (type === 'fast') { hp = baseHp * 0.6; speed = rand(95,130)+state.level*2; r = 11; }
+    if (type === 'tank') { hp = baseHp * 2.4; speed = rand(32,48); r = 18; }
+    if (type === 'exploder') { hp = baseHp * 0.85; speed = rand(55,75); r = 14; }
+    if (type === 'boss') { hp = baseHp * 7; speed = 52; r = 28; }
+    if (nightMode && type !== 'boss') { hp *= 1.25; speed *= 1.1; }
+    zombies.push({
+      x: player.x+Math.cos(angle)*d, y: player.y+Math.sin(angle)*d,
+      hp, maxHp: hp, speed, r, boss: type==='boss', type, slow: 0
+    });
   }
   function startNewGame() {
     state.name = $('playerNameInput').value.trim() || 'Survivor'; state.country = $('countrySelect').value;
@@ -461,14 +555,14 @@
   $('resumeBtn').onclick = () => { state.paused=false; ui.pause.classList.add('hidden'); };
   $('saveBtn').onclick = () => { saveGame(); addFloat(player.x,player.y-40,'SAVED!','#2ecc71'); };
   $('quitBtn').onclick = () => { state.running=false; state.paused=false; ui.pause.classList.add('hidden'); ui.menu.classList.remove('hidden'); };
-  $('bagMenuBtn').onclick = () => { ui.bag.classList.toggle('hidden'); updateUI(); };
-  $('profileBtn').onclick = () => { ui.profile.classList.toggle('hidden'); updateUI(); };
-  $('menuMultiBtn').onclick = () => { ui.multi.classList.remove('hidden'); refreshRooms(); };
-  $('menuRankBtn').onclick = () => { ui.rank.classList.remove('hidden'); refreshLeaderboard(); };
-  $('closeBagBtn').onclick = () => ui.bag.classList.add('hidden');
-  $('closeProfileBtn').onclick = () => ui.profile.classList.add('hidden');
-  $('closeMultiBtn').onclick = () => ui.multi.classList.add('hidden');
-  $('closeRankBtn').onclick = () => ui.rank.classList.add('hidden');
+  $('bagMenuBtn').onclick = () => { if (ui.bag.classList.contains('hidden')) { openMenu('bagMenu'); updateUI(); } else closeMenu('bagMenu'); };
+  $('profileBtn').onclick = () => { if (ui.profile.classList.contains('hidden')) { openMenu('profileMenu'); updateUI(); } else closeMenu('profileMenu'); };
+  $('menuMultiBtn').onclick = () => { if (typeof refreshRooms==='function') refreshRooms(); openMenu('multiMenu'); };
+  $('menuRankBtn').onclick = () => { refreshLeaderboard(); openMenu('rankMenu'); };
+  $('closeBagBtn').onclick = () => closeMenu('bagMenu');
+  $('closeProfileBtn').onclick = () => closeMenu('profileMenu');
+  $('closeMultiBtn').onclick = () => closeMenu('multiMenu');
+  $('closeRankBtn').onclick = () => closeMenu('rankMenu');
   $('createRoomBtn').onclick = () => { refreshRooms(); };
   $('refreshRoomsBtn').onclick = () => refreshRooms();
   window.addEventListener('keydown', e => { keys[e.key.toLowerCase()]=true; if (e.key===' '||e.key==='f'){attackHeld=true;attackReq=true;} if (e.key.toLowerCase()==='r') startReload(); });
@@ -659,10 +753,10 @@
   }
 
   // UI bindings for new menus
-  if ($('shopBtn')) $('shopBtn').onclick = () => { renderShop(); ui.shop = $('shopMenu'); $('shopMenu').classList.remove('hidden'); };
-  if ($('closeShopBtn')) $('closeShopBtn').onclick = () => $('shopMenu').classList.add('hidden');
-  if ($('missionBtn')) $('missionBtn').onclick = () => { renderMissions(); $('missionMenu').classList.remove('hidden'); };
-  if ($('closeMissionBtn')) $('closeMissionBtn').onclick = () => $('missionMenu').classList.add('hidden');
+  if ($('shopBtn')) $('shopBtn').onclick = () => { renderShop(); openMenu('shopMenu'); };
+  if ($('closeShopBtn')) $('closeShopBtn').onclick = () => closeMenu('shopMenu');
+  if ($('missionBtn')) $('missionBtn').onclick = () => { renderMissions(); openMenu('missionMenu'); };
+  if ($('closeMissionBtn')) $('closeMissionBtn').onclick = () => closeMenu('missionMenu');
   if ($('tutorialBtn')) $('tutorialBtn').onclick = () => $('tutorialMenu').classList.remove('hidden');
   if ($('closeTutorialBtn')) $('closeTutorialBtn').onclick = () => {
     $('tutorialMenu').classList.add('hidden');
@@ -685,6 +779,22 @@
   // Hook mission progress into existing kill/wave logic via monkey-patch style
   const _origKill = typeof killZombie === 'function' ? killZombie : null;
 
+  
+  const tipTexts = [
+    'Tip: Hold FIRE to shoot • R to reload • Boss every 5 waves',
+    'Tip: Night Mode = harder zombies but more coins',
+    'Tip: Fast red zombies are weak but speedy — priority targets',
+    'Tip: Tank zombies soak damage — use shotgun or explode',
+    'Tip: Combo kills for bonus coins — keep the streak!',
+    'Tip: Supply drops and lucky chests appear every ~30s',
+    'Tip: Open BAG to buy stronger guns — prices scale with power'
+  ];
+  let tipIdx = 0;
+  setInterval(() => {
+    tipIdx = (tipIdx + 1) % tipTexts.length;
+    const t = $('tipText'); if (t) t.textContent = tipTexts[tipIdx];
+  }, 8000);
+
   let last = performance.now();
   function loop(now) {
     let dt = Math.min((now-last)/1000, 0.05); last = now;
@@ -701,6 +811,49 @@
       if ((attackHeld||attackReq) && fireCD<=0) { fire(); attackReq=false; }
       player.recoil = Math.max(0, player.recoil - dt*6);
       if (reloading) { reloadTimer-=dt; if (reloadTimer<=0) { reloading=false; ammo=getWep().mag; sfxReload(); } }
+
+      // Combo decay
+      if (comboTimer > 0) { comboTimer -= dt; if (comboTimer <= 0) { combo = 0; const ct=$('comboText'); if(ct) ct.classList.remove('show'); } }
+      // Power spike decay
+      if (powerTimer > 0) { powerTimer -= dt; if (powerTimer <= 0) powerMul = 1; }
+
+      // Mini events every ~30-40s
+      eventTimer -= dt;
+      if (eventTimer <= 0) {
+        eventTimer = 30 + Math.random() * 12;
+        const roll = Math.random();
+        const eb = $('eventBanner');
+        if (roll < 0.34) {
+          // Supply drop powerup shower near player
+          for (let i=0;i<3;i++) {
+            const types = ['heal','ammo','speed','damage'];
+            powerups.push({ x: player.x+rand(-80,80), y: player.y+rand(-80,80), type: types[Math.floor(Math.random()*types.length)], life: 14 });
+          }
+          if (eb) { eb.textContent = '📦 SUPPLY DROP!'; eb.classList.add('show'); setTimeout(()=>eb.classList.remove('show'), 2200); }
+        } else if (roll < 0.67) {
+          // Sudden swarm
+          for (let i=0;i<5+Math.floor(state.level/2);i++) spawnZombie(false);
+          if (eb) { eb.textContent = '⚠️ ZOMBIE SWARM!'; eb.classList.add('show'); setTimeout(()=>eb.classList.remove('show'), 2200); }
+        } else {
+          // Lucky chest = big coin + ammo
+          state.coins += 40 + state.level * 8;
+          ammo = getWep().mag;
+          powerMul = 1.6; powerTimer = 8;
+          if (eb) { eb.textContent = '🎁 LUCKY CHEST! +DMG 8s'; eb.classList.add('show'); setTimeout(()=>eb.classList.remove('show'), 2200); }
+          addFloat(player.x, player.y-40, 'POWER UP!', '#f1c40f', 18);
+        }
+      }
+
+      // Visible goals
+      nextBossWave = Math.ceil(state.level / 5) * 5;
+      if (nextBossWave <= state.level) nextBossWave = state.level + 5;
+      const gb = $('goalBar');
+      if (gb) {
+        const mk = missions.kill20;
+        const missionTxt = mk ? (mk.done ? 'Missions done ✓' : `Kills ${mk.progress}/${mk.target}`) : '';
+        gb.textContent = `Next Boss: Wave ${nextBossWave} • ${missionTxt} • Combo ${combo || 0}`;
+      }
+
       const maxZ = 14 + state.level*2.5;
       if (zombies.length < maxZ && Math.random() < 0.035+state.level*0.002) spawnZombie(false);
       if (state.level>=5 && state.level%5===0 && !bossSpawned && zombies.filter(z=>z.boss).length===0) { spawnZombie(true); bossSpawned=true; showWaveBanner('BOSS INCOMING!'); }
@@ -739,7 +892,10 @@
     zombies.forEach(z => {
       ctx.save(); ctx.translate(z.x,z.y);
       ctx.fillStyle='rgba(0,0,0,0.35)'; ctx.beginPath();ctx.ellipse(0,z.r*0.6,z.r*1.1,z.r*0.55,0,0,Math.PI*2);ctx.fill();
-      if (z.boss) { ctx.fillStyle='#5b2c6f'; ctx.beginPath();ctx.roundRect(-z.r*0.8,-z.r*0.7,z.r*1.6,z.r*1.6,8);ctx.fill(); ctx.fillStyle='#9b59b6';ctx.beginPath();ctx.arc(0,-z.r*0.55,z.r*0.65,0,Math.PI*2);ctx.fill(); ctx.fillStyle='#f1c40f';ctx.fillRect(-6,-z.r*0.75,4,4);ctx.fillRect(2,-z.r*0.75,4,4); }
+      if (z.boss || z.type==='boss') { ctx.fillStyle='#5b2c6f'; ctx.beginPath();ctx.roundRect(-z.r*0.8,-z.r*0.7,z.r*1.6,z.r*1.6,8);ctx.fill(); ctx.fillStyle='#9b59b6';ctx.beginPath();ctx.arc(0,-z.r*0.55,z.r*0.65,0,Math.PI*2);ctx.fill(); ctx.fillStyle='#f1c40f';ctx.fillRect(-6,-z.r*0.75,4,4);ctx.fillRect(2,-z.r*0.75,4,4); }
+      else if (z.type==='fast') { ctx.fillStyle='#c0392b';ctx.beginPath();ctx.roundRect(-z.r*0.6,-z.r*0.45,z.r*1.2,z.r*1.3,4);ctx.fill(); ctx.fillStyle='#e74c3c';ctx.beginPath();ctx.arc(0,-z.r*0.5,z.r*0.55,0,Math.PI*2);ctx.fill(); ctx.fillStyle='#fff';ctx.fillRect(-3,-z.r*0.65,2,2);ctx.fillRect(1,-z.r*0.65,2,2); }
+      else if (z.type==='tank') { ctx.fillStyle='#2c3e50';ctx.beginPath();ctx.roundRect(-z.r*0.75,-z.r*0.55,z.r*1.5,z.r*1.6,6);ctx.fill(); ctx.fillStyle='#5d6d7e';ctx.beginPath();ctx.arc(0,-z.r*0.5,z.r*0.6,0,Math.PI*2);ctx.fill(); ctx.fillStyle='#f1c40f';ctx.fillRect(-4,-z.r*0.65,3,3);ctx.fillRect(1,-z.r*0.65,3,3); }
+      else if (z.type==='exploder') { ctx.fillStyle='#6c3483';ctx.beginPath();ctx.roundRect(-z.r*0.65,-z.r*0.5,z.r*1.3,z.r*1.45,5);ctx.fill(); ctx.fillStyle='#e74c3c';ctx.beginPath();ctx.arc(0,-z.r*0.5,z.r*0.58,0,Math.PI*2);ctx.fill(); ctx.fillStyle='#f39c12';ctx.fillRect(-3,-z.r*0.65,2,2);ctx.fillRect(1,-z.r*0.65,2,2); }
       else { ctx.fillStyle='#3d5c40';ctx.beginPath();ctx.roundRect(-z.r*0.65,-z.r*0.5,z.r*1.3,z.r*1.5,5);ctx.fill(); ctx.fillStyle='#6b8f5e';ctx.beginPath();ctx.arc(0,-z.r*0.55,z.r*0.62,0,Math.PI*2);ctx.fill(); ctx.fillStyle='#d5f5a3';ctx.fillRect(-4,-z.r*0.7,3,3);ctx.fillRect(1,-z.r*0.7,3,3); }
       ctx.fillStyle='#1a1a1a';ctx.fillRect(-z.r,-z.r-10,z.r*2,4); ctx.fillStyle=z.boss?'#9b59b6':'#e74c3c';ctx.fillRect(-z.r,-z.r-10,z.r*2*Math.max(0,z.hp/z.maxHp),4);
       ctx.restore();
@@ -762,7 +918,7 @@
     else { ctx.fillStyle='#1a252f';ctx.strokeStyle='#5d6d7e';ctx.lineWidth=1.2; ctx.beginPath();ctx.roundRect(12-recoilOff,-4,24,6,2);ctx.fill();ctx.stroke(); ctx.fillStyle='#85929e';ctx.fillRect(28-recoilOff,-2,12,2.5); ctx.fillStyle='#2c3e50';ctx.fillRect(16,1,5,6); }
     ctx.restore(); ctx.restore();
     floatingTexts.forEach(f => { const sx=w/2+(f.x-player.x), sy=h/2+(f.y-player.y); ctx.globalAlpha=Math.min(1,f.life*1.5); ctx.fillStyle=f.color; ctx.font=`bold ${f.size||15}px system-ui`; ctx.textAlign='center'; ctx.fillText(f.text,sx,sy); ctx.globalAlpha=1; });
-    const showCombat = state.running && !state.paused && !state.dead;
+    const showCombat = state.running && !state.paused && !state.dead && !isMenuOpen();
     attackBtn.style.display = showCombat ? 'flex' : 'none'; zone.style.display = showCombat ? 'block' : 'none';
     if (!showCombat) { attackHeld=false; attackReq=false; }
     updateUI(); requestAnimationFrame(loop);
