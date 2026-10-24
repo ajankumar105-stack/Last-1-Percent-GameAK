@@ -7,7 +7,7 @@
   <title>Last 1 Percent - Survival</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
-    body { background: #0a0e14; color: #f5d773; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; touch-action: manipulation; overflow: hidden; height: 100vh; width: 100vw; }
+    body { background: radial-gradient(ellipse at 50% 30%, #15202b 0%, #0a0e14 55%, #06080c 100%); color: #f5d773; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; touch-action: manipulation; overflow: hidden; height: 100vh; width: 100vw; }
     #game { display: block; width: 100%; height: 100%; }
     #topbar { position: absolute; top: 8px; left: 8px; right: 8px; display: flex; justify-content: space-between; gap: 6px; pointer-events: none; z-index: 10; flex-wrap: wrap; }
     .hud-card { background: rgba(15,20,28,0.88); backdrop-filter: blur(6px); border: 1px solid #3a4a5c; border-radius: 10px; padding: 6px 10px; color: #fff; font-size: 12px; font-weight: 700; pointer-events: auto; display: flex; align-items: center; gap: 6px; }
@@ -23,7 +23,7 @@
     .btn-danger { background: #c0392b; border-color: #e74c3c; }
     .overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.88); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 40; padding: 16px; }
     .hidden { display: none !important; }
-    .panel { background: #121820; border: 1px solid #3a4a5c; border-radius: 14px; padding: 18px; width: 100%; max-width: 400px; color: #fff; max-height: 85vh; overflow-y: auto; box-shadow: 0 12px 40px rgba(0,0,0,0.5); }
+    .panel { background: linear-gradient(180deg,#1a2430 0%,#121820 100%); border: 1px solid #4a5c70; border-radius: 16px; padding: 18px; width: 100%; max-width: 400px; color: #fff; max-height: 85vh; overflow-y: auto; box-shadow: 0 16px 50px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.06); }
     .panel h2 { color: #f5d773; margin-bottom: 10px; font-size: 20px; text-align: center; }
     .row { display: flex; gap: 8px; margin-bottom: 8px; }
     .row .btn { flex: 1; }
@@ -176,6 +176,7 @@
       <p style="text-align:center;margin-bottom:12px;color:#8a9bb0;">Take a breather.</p>
       <button id="resumeBtn" class="btn btn-primary" style="width:100%;margin-bottom:8px;">RESUME</button>
       <button id="saveBtn" class="btn" style="width:100%;margin-bottom:8px;">SAVE NOW</button>
+      <button id="musicBtn" class="btn" style="width:100%;margin-bottom:8px;">MUSIC: ON</button>
       <button id="quitBtn" class="btn btn-danger" style="width:100%;">QUIT TO MENU</button>
     </div>
   </div>
@@ -304,34 +305,51 @@
   }
 
 
-  const weapons = [
-    { name: 'Survivor Pistol', dmg: 28, cost: 0, mag: 12, reload: 1.0, fireRate: 0.20, range: 400, bulletSpeed: 650, kind: 'gun', spread: 0.04, pellets: 1, color: '#ffcf5a' },
-    { name: 'Chicken Launcher', dmg: 55, cost: 400, mag: 6, reload: 1.5, fireRate: 0.42, range: 360, bulletSpeed: 500, kind: 'gun', spread: 0.08, pellets: 1, color: '#f39c12', special: 'explode' },
-    { name: 'Banana Peel Gun', dmg: 32, cost: 550, mag: 16, reload: 1.2, fireRate: 0.16, range: 320, bulletSpeed: 580, kind: 'gun', spread: 0.10, pellets: 1, color: '#f1c40f', special: 'slow' },
-    { name: 'Combat Shotgun', dmg: 24, cost: 1200, mag: 7, reload: 1.7, fireRate: 0.50, range: 210, bulletSpeed: 720, kind: 'gun', spread: 0.20, pellets: 7, color: '#e67e22' },
-    { name: 'Laser Disco', dmg: 22, cost: 2200, mag: 35, reload: 1.3, fireRate: 0.07, range: 450, bulletSpeed: 950, kind: 'gun', spread: 0.02, pellets: 1, color: '#9b59b6', special: 'pierce' },
-    { name: 'Frost SMG', dmg: 18, cost: 3500, mag: 28, reload: 1.4, fireRate: 0.09, range: 380, bulletSpeed: 700, kind: 'gun', spread: 0.06, pellets: 1, color: '#5dade2', special: 'slow' },
-    { name: 'Rocket Fist', dmg: 120, cost: 5500, mag: 4, reload: 2.0, fireRate: 0.70, range: 500, bulletSpeed: 420, kind: 'gun', spread: 0.03, pellets: 1, color: '#e74c3c', special: 'explode' },
-    { name: 'Plasma Rifle', dmg: 48, cost: 8000, mag: 20, reload: 1.5, fireRate: 0.18, range: 480, bulletSpeed: 800, kind: 'gun', spread: 0.03, pellets: 1, color: '#1abc9c', special: 'pierce' },
-    { name: 'Thunder Cannon', dmg: 90, cost: 12000, mag: 5, reload: 2.2, fireRate: 0.65, range: 550, bulletSpeed: 600, kind: 'gun', spread: 0.05, pellets: 1, color: '#f39c12', special: 'explode' },
-    { name: 'Wasteland Reaper', dmg: 160, cost: 18000, mag: 1, reload: 0.55, fireRate: 0.45, range: 110, bulletSpeed: 0, kind: 'melee', spread: 0, pellets: 1, color: '#ecf0f1' }
+    const weapons = [
+    { name: 'Survivor Pistol', dmg: 26, cost: 0, mag: 12, reload: 1.0, fireRate: 0.20, range: 400, bulletSpeed: 650, kind: 'gun', spread: 0.04, pellets: 1, color: '#ffcf5a' },
+    { name: 'Rusty SMG', dmg: 14, cost: 800, mag: 24, reload: 1.3, fireRate: 0.09, range: 360, bulletSpeed: 680, kind: 'gun', spread: 0.08, pellets: 1, color: '#bdc3c7' },
+    { name: 'Chicken Launcher', dmg: 48, cost: 1500, mag: 5, reload: 1.6, fireRate: 0.45, range: 340, bulletSpeed: 480, kind: 'gun', spread: 0.08, pellets: 1, color: '#f39c12', special: 'explode' },
+    { name: 'Banana Peel Gun', dmg: 22, cost: 2200, mag: 16, reload: 1.2, fireRate: 0.15, range: 300, bulletSpeed: 560, kind: 'gun', spread: 0.10, pellets: 1, color: '#f1c40f', special: 'slow' },
+    { name: 'Combat Shotgun', dmg: 18, cost: 4500, mag: 6, reload: 1.8, fireRate: 0.55, range: 200, bulletSpeed: 700, kind: 'gun', spread: 0.22, pellets: 7, color: '#e67e22' },
+    { name: 'Frost SMG', dmg: 16, cost: 7000, mag: 30, reload: 1.4, fireRate: 0.08, range: 380, bulletSpeed: 720, kind: 'gun', spread: 0.06, pellets: 1, color: '#5dade2', special: 'slow' },
+    { name: 'Laser Disco', dmg: 20, cost: 11000, mag: 35, reload: 1.3, fireRate: 0.07, range: 450, bulletSpeed: 950, kind: 'gun', spread: 0.02, pellets: 1, color: '#9b59b6', special: 'pierce' },
+    { name: 'Poison Dart', dmg: 30, cost: 15000, mag: 10, reload: 1.5, fireRate: 0.28, range: 420, bulletSpeed: 600, kind: 'gun', spread: 0.03, pellets: 1, color: '#27ae60', special: 'slow' },
+    { name: 'Flame Thrower', dmg: 12, cost: 20000, mag: 40, reload: 2.0, fireRate: 0.05, range: 180, bulletSpeed: 400, kind: 'gun', spread: 0.15, pellets: 2, color: '#e67e22', special: 'explode' },
+    { name: 'Rocket Fist', dmg: 95, cost: 28000, mag: 4, reload: 2.1, fireRate: 0.70, range: 480, bulletSpeed: 420, kind: 'gun', spread: 0.03, pellets: 1, color: '#e74c3c', special: 'explode' },
+    { name: 'Plasma Rifle', dmg: 42, cost: 38000, mag: 18, reload: 1.5, fireRate: 0.18, range: 500, bulletSpeed: 820, kind: 'gun', spread: 0.03, pellets: 1, color: '#1abc9c', special: 'pierce' },
+    { name: 'Thunder Cannon', dmg: 110, cost: 52000, mag: 4, reload: 2.3, fireRate: 0.75, range: 560, bulletSpeed: 580, kind: 'gun', spread: 0.04, pellets: 1, color: '#f39c12', special: 'explode' },
+    { name: 'Void Sniper', dmg: 160, cost: 70000, mag: 5, reload: 2.0, fireRate: 0.85, range: 700, bulletSpeed: 1100, kind: 'gun', spread: 0.01, pellets: 1, color: '#8e44ad', special: 'pierce' },
+    { name: 'Nano Swarm', dmg: 15, cost: 90000, mag: 50, reload: 1.8, fireRate: 0.04, range: 320, bulletSpeed: 500, kind: 'gun', spread: 0.18, pellets: 3, color: '#3498db' },
+    { name: 'Meteor Gun', dmg: 140, cost: 120000, mag: 3, reload: 2.5, fireRate: 0.90, range: 450, bulletSpeed: 400, kind: 'gun', spread: 0.05, pellets: 1, color: '#c0392b', special: 'explode' },
+    { name: 'Quantum Blade', dmg: 200, cost: 160000, mag: 1, reload: 0.5, fireRate: 0.40, range: 120, bulletSpeed: 0, kind: 'melee', spread: 0, pellets: 1, color: '#00cec9' },
+    { name: 'Dragon Breath', dmg: 55, cost: 210000, mag: 12, reload: 1.7, fireRate: 0.22, range: 280, bulletSpeed: 550, kind: 'gun', spread: 0.12, pellets: 4, color: '#d35400', special: 'explode' },
+    { name: 'Ice Age', dmg: 35, cost: 280000, mag: 25, reload: 1.4, fireRate: 0.10, range: 400, bulletSpeed: 700, kind: 'gun', spread: 0.05, pellets: 1, color: '#74b9ff', special: 'slow' },
+    { name: 'Black Hole', dmg: 180, cost: 400000, mag: 3, reload: 2.8, fireRate: 1.0, range: 500, bulletSpeed: 350, kind: 'gun', spread: 0.02, pellets: 1, color: '#2d3436', special: 'explode' },
+    { name: 'Godslayer Rail', dmg: 280, cost: 600000, mag: 2, reload: 2.2, fireRate: 1.1, range: 800, bulletSpeed: 1400, kind: 'gun', spread: 0.0, pellets: 1, color: '#fdcb6e', special: 'pierce' },
+    { name: 'Wasteland Reaper', dmg: 220, cost: 750000, mag: 1, reload: 0.5, fireRate: 0.42, range: 130, bulletSpeed: 0, kind: 'melee', spread: 0, pellets: 1, color: '#ecf0f1' },
+    { name: 'Omega End', dmg: 350, cost: 1200000, mag: 1, reload: 3.0, fireRate: 1.5, range: 600, bulletSpeed: 500, kind: 'gun', spread: 0.01, pellets: 1, color: '#ff7675', special: 'explode' }
   ];
   const pets = [
-    { name: 'None', desc: 'No companion', cost: 0 },
-    { name: 'Doge', desc: '+60% coins', cost: 250 },
-    { name: 'Battle Duck', desc: 'Auto laser zap', cost: 500 },
-    { name: 'Mini Bot', desc: '+30 Max HP + regen', cost: 850 },
-    { name: 'Shadow Cat', desc: 'Faster move + crit', cost: 1100 }
+    { name: 'None', desc: 'No companion', cost: 0, color: null },
+    { name: 'Doge', desc: '+40% coins', cost: 2500, color: '#f4d03f' },
+    { name: 'Battle Duck', desc: 'Auto laser zap', cost: 6000, color: '#f39c12' },
+    { name: 'Mini Bot', desc: '+30 Max HP + regen', cost: 12000, color: '#5dade2' },
+    { name: 'Shadow Cat', desc: 'Faster move + crit', cost: 20000, color: '#9b59b6' },
+    { name: 'Phoenix Cub', desc: 'Occasional heal burst', cost: 35000, color: '#e74c3c' },
+    { name: 'Ghost Pup', desc: 'Slow nearby zombies', cost: 50000, color: '#aed6f1' }
   ];
   const skins = [
     { name: 'Blue Recruit', color: '#6a9bd8', cost: 0 },
-    { name: 'Golden Suit', color: '#ffd166', cost: 350 },
-    { name: 'Cyber Red', color: '#ff5d73', cost: 650 },
-    { name: 'Toxic Green', color: '#2ecc71', cost: 900 },
-    { name: 'Night Ops', color: '#34495e', cost: 1200 }
+    { name: 'Golden Suit', color: '#ffd166', cost: 5000 },
+    { name: 'Cyber Red', color: '#ff5d73', cost: 12000 },
+    { name: 'Toxic Green', color: '#2ecc71', cost: 18000 },
+    { name: 'Night Ops', color: '#34495e', cost: 25000 },
+    { name: 'Royal Purple', color: '#9b59b6', cost: 40000 },
+    { name: 'Legend Gold', color: '#f1c40f', cost: 80000 },
+    { name: 'DEMO Crown Aura', color: '#fd79a8', cost: 0 }
   ];
 
-  let state = { running: false, paused: false, dead: false, level: 1, hp: 100, maxHp: 100, xp: 0, coins: 80, kills: 0, weapon: 0, unlocked: [0], skin: 0, skinUnlocked: [0], pet: 0, name: 'Survivor', country: '🇹🇭 Thailand', highWave: 1 };
+  let state = { running: false, paused: false, dead: false, level: 1, hp: 100, maxHp: 100, xp: 0, coins: 25, kills: 0, weapon: 0, unlocked: [0], skin: 0, skinUnlocked: [0], pet: 0, name: 'Survivor', country: '🇹🇭 Thailand', highWave: 1 };
   try { const s = JSON.parse(localStorage.getItem('l1p_v3') || 'null'); if (s && typeof s === 'object') state = { ...state, ...s, running: false, paused: false, dead: false }; } catch (e) { localStorage.removeItem('l1p_v3'); }
 
   let player = { x: 0, y: 0, speed: 195, angle: 0, recoil: 0 };
@@ -340,6 +358,7 @@
   let attackHeld = false, attackReq = false;
 
   let combo = 0, comboTimer = 0, eventTimer = 28, powerTimer = 0, powerMul = 1;
+  let petPos = { x: 0, y: 0 };
   let nextBossWave = 5;
 
   let ammo = 12, reloading = false, reloadTimer = 0, fireCD = 0, petTimer = 0;
@@ -360,6 +379,35 @@
   function sfxLevel() { ensureAudio(); beep(400, 0.1, 'sine', 0.08); setTimeout(() => beep(600, 0.15, 'sine', 0.07), 100); }
   function sfxDie() { ensureAudio(); beep(80, 0.4, 'sawtooth', 0.1); }
   function sfxPickup() { ensureAudio(); beep(520, 0.08, 'sine', 0.07); beep(720, 0.1, 'sine', 0.06); }
+
+  // Lightweight ambient background music (generated, free, no copyright file)
+  let musicNodes = null, musicOn = true;
+  function startMusic() {
+    ensureAudio();
+    if (!audioCtx || musicNodes) return;
+    try {
+      const master = audioCtx.createGain();
+      master.gain.value = 0.035;
+      master.connect(audioCtx.destination);
+      const freqs = [55, 82.5, 110];
+      musicNodes = freqs.map((f, i) => {
+        const o = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        o.type = i === 0 ? 'sine' : 'triangle';
+        o.frequency.value = f;
+        g.gain.value = 0.3 / (i + 1);
+        o.connect(g); g.connect(master);
+        o.start();
+        return { o, g };
+      });
+    } catch(e) {}
+  }
+  function stopMusic() {
+    if (!musicNodes) return;
+    musicNodes.forEach(n => { try { n.o.stop(); } catch(e){} });
+    musicNodes = null;
+  }
+
 
   function rand(a, b) { return a + Math.random() * (b - a); }
   function dist(x1, y1, x2, y2) { return Math.hypot(x2 - x1, y2 - y1); }
@@ -454,7 +502,7 @@
     const coinMul = state.pet === 1 ? 1.6 : 1;
     combo += 1; comboTimer = 2.2;
     const streakMul = 1 + Math.min(1.5, combo * 0.08);
-    const coins = Math.round((z.boss ? 55 : 12 + state.level * 1.8) * coinMul * (nightMode ? 1.4 : 1) * streakMul * powerMul);
+    const coins = Math.round((z.boss ? 18 : 3 + state.level * 0.4) * coinMul * (nightMode ? 1.25 : 1) * Math.min(1.4, streakMul) * powerMul);
     state.coins += coins; state.kills++; state.xp += z.boss ? 50 : 20;
     updateMissionProgress('kill', 1);
     if (z.boss) updateMissionProgress('boss', 1);
@@ -507,12 +555,13 @@
   function startNewGame() {
     state.name = $('playerNameInput').value.trim() || 'Survivor'; state.country = $('countrySelect').value;
     state.running = true; state.paused = false; state.dead = false; state.level = 1; state.xp = 0; state.kills = 0;
+    // Keep coins, unlocked weapons, skins, pets — only run progress resets
     state.maxHp = state.pet === 3 ? 130 : 100; state.hp = state.maxHp;
     player.x = 0; player.y = 0; player.angle = 0;
     bullets = []; zombies = []; particles = []; powerups = []; floatingTexts = [];
     ammo = getWep().mag; reloading = false; fireCD = 0; bossSpawned = false;
     ui.menu.classList.add('hidden'); ui.gameOver.classList.add('hidden'); ui.pause.classList.add('hidden');
-    showWaveBanner('WAVE 1'); updateUI(); ensureAudio();
+    showWaveBanner('WAVE 1'); updateUI(); ensureAudio(); startMusic(); petPos.x = 0; petPos.y = 0;
   }
   function continueGame() { state.running = true; state.paused = false; state.dead = false; ui.menu.classList.add('hidden'); ui.gameOver.classList.add('hidden'); ammo = getWep().mag; updateUI(); }
   function die() {
@@ -554,7 +603,12 @@
   $('pauseBtn').onclick = () => { if (!state.running||state.dead) return; state.paused=!state.paused; ui.pause.classList.toggle('hidden',!state.paused); };
   $('resumeBtn').onclick = () => { state.paused=false; ui.pause.classList.add('hidden'); };
   $('saveBtn').onclick = () => { saveGame(); addFloat(player.x,player.y-40,'SAVED!','#2ecc71'); };
-  $('quitBtn').onclick = () => { state.running=false; state.paused=false; ui.pause.classList.add('hidden'); ui.menu.classList.remove('hidden'); };
+  $('quitBtn').onclick = () => { state.running=false; state.paused=false; ui.pause.classList.add('hidden'); ui.menu.classList.remove('hidden'); stopMusic(); };
+  if ($('musicBtn')) $('musicBtn').onclick = () => {
+    musicOn = !musicOn;
+    $('musicBtn').textContent = 'MUSIC: ' + (musicOn ? 'ON' : 'OFF');
+    if (musicOn) startMusic(); else stopMusic();
+  };
   $('bagMenuBtn').onclick = () => { if (ui.bag.classList.contains('hidden')) { openMenu('bagMenu'); updateUI(); } else closeMenu('bagMenu'); };
   $('profileBtn').onclick = () => { if (ui.profile.classList.contains('hidden')) { openMenu('profileMenu'); updateUI(); } else closeMenu('profileMenu'); };
   $('menuMultiBtn').onclick = () => { if (typeof refreshRooms==='function') refreshRooms(); openMenu('multiMenu'); };
@@ -787,7 +841,7 @@
     'Tip: Tank zombies soak damage — use shotgun or explode',
     'Tip: Combo kills for bonus coins — keep the streak!',
     'Tip: Supply drops and lucky chests appear every ~30s',
-    'Tip: Open BAG to buy stronger guns — prices scale with power'
+    'Tip: Guns are expensive — save coins across runs, unlocks persist!'
   ];
   let tipIdx = 0;
   setInterval(() => {
@@ -832,7 +886,7 @@
           if (eb) { eb.textContent = '📦 SUPPLY DROP!'; eb.classList.add('show'); setTimeout(()=>eb.classList.remove('show'), 2200); }
         } else if (roll < 0.67) {
           // Sudden swarm
-          for (let i=0;i<5+Math.floor(state.level/2);i++) spawnZombie(false);
+          for (let i=0;i<Math.min(4, 2+Math.floor(state.level/3));i++) spawnZombie(false);
           if (eb) { eb.textContent = '⚠️ ZOMBIE SWARM!'; eb.classList.add('show'); setTimeout(()=>eb.classList.remove('show'), 2200); }
         } else {
           // Lucky chest = big coin + ammo
@@ -854,21 +908,56 @@
         gb.textContent = `Next Boss: Wave ${nextBossWave} • ${missionTxt} • Combo ${combo || 0}`;
       }
 
-      const maxZ = 14 + state.level*2.5;
-      if (zombies.length < maxZ && Math.random() < 0.035+state.level*0.002) spawnZombie(false);
+      const maxZ = Math.min(12, 6 + Math.floor(state.level * 0.7));
+      if (zombies.length < maxZ && Math.random() < 0.022+state.level*0.001) spawnZombie(false);
       if (state.level>=5 && state.level%5===0 && !bossSpawned && zombies.filter(z=>z.boss).length===0) { spawnZombie(true); bossSpawned=true; showWaveBanner('BOSS INCOMING!'); }
       // Night mode: more zombies
-      if (nightMode && zombies.length < maxZ + 6 && Math.random() < 0.05) spawnZombie(false);
+      if (nightMode && zombies.length < maxZ + 3 && Math.random() < 0.03) spawnZombie(false);
       zombies.forEach(z => {
         if (z.slow>0) z.slow-=dt;
         const spd = z.speed*(z.slow>0?0.45:1);
         const a = Math.atan2(player.y-z.y, player.x-z.x);
         z.x += Math.cos(a)*spd*dt; z.y += Math.sin(a)*spd*dt;
-        if (dist(player.x,player.y,z.x,z.y) < z.r+14) { state.hp -= (z.boss?28:16)*dt; if (state.hp<=0){state.hp=0;die();} }
+        const touchR = z.r + 14;
+        if (dist(player.x,player.y,z.x,z.y) < touchR) {
+          let dps = 12;
+          if (z.type === 'fast') dps = 18;
+          else if (z.type === 'tank') dps = 22;
+          else if (z.type === 'exploder') dps = 10;
+          else if (z.boss) dps = 30;
+          if (nightMode) dps *= 1.15;
+          state.hp -= dps * dt;
+          if (state.hp<=0){state.hp=0;die();}
+        }
+        // Ranged spit from tank/boss occasionally
+        if ((z.type==='tank' || z.boss) && Math.random() < 0.003) {
+          const a = Math.atan2(player.y-z.y, player.x-z.x);
+          bullets.push({ x:z.x, y:z.y, vx:Math.cos(a)*180, vy:Math.sin(a)*180, life:1.5, dmg:8, color:'#2ecc71', special:null, pierce:0, r:5, enemy:true });
+        }
       });
-      bullets.forEach(b => {
+      // Pet companion (world space, inside camera)
+    if (state.pet > 0 && pets[state.pet] && pets[state.pet].color) {
+      const pc = pets[state.pet].color;
+      ctx.save();
+      ctx.translate(petPos.x, petPos.y);
+      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      ctx.beginPath(); ctx.ellipse(0, 6, 10, 5, 0, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = pc;
+      ctx.beginPath(); ctx.arc(0, 0, 9, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(-3, -2, 2, 0, Math.PI*2); ctx.arc(3, -2, 2, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#111';
+      ctx.beginPath(); ctx.arc(-3, -2, 1, 0, Math.PI*2); ctx.arc(3, -2, 1, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
+
+    bullets.forEach(b => {
         b.x+=b.vx*dt; b.y+=b.vy*dt; b.life-=dt;
-        zombies.forEach(z => { if (b.life<=0) return; if (dist(b.x,b.y,z.x,z.y)<z.r+b.r) { hitZombie(z,b.dmg,{special:b.special}); if(b.pierce>0)b.pierce--; else b.life=0; } });
+        if (b.enemy) {
+          if (dist(b.x,b.y,player.x,player.y) < 16) { state.hp -= b.dmg; b.life = 0; spawnParticle(player.x,player.y,'#2ecc71',0.2,5); if(state.hp<=0){state.hp=0;die();} }
+        } else {
+          zombies.forEach(z => { if (b.life<=0) return; if (dist(b.x,b.y,z.x,z.y)<z.r+b.r) { hitZombie(z,b.dmg,{special:b.special}); if(b.pierce>0)b.pierce--; else b.life=0; } });
+        }
       });
       bullets = bullets.filter(b => b.life>0);
       petTimer -= dt;
@@ -900,6 +989,22 @@
       ctx.fillStyle='#1a1a1a';ctx.fillRect(-z.r,-z.r-10,z.r*2,4); ctx.fillStyle=z.boss?'#9b59b6':'#e74c3c';ctx.fillRect(-z.r,-z.r-10,z.r*2*Math.max(0,z.hp/z.maxHp),4);
       ctx.restore();
     });
+    // Pet companion (world space, inside camera)
+    if (state.pet > 0 && pets[state.pet] && pets[state.pet].color) {
+      const pc = pets[state.pet].color;
+      ctx.save();
+      ctx.translate(petPos.x, petPos.y);
+      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      ctx.beginPath(); ctx.ellipse(0, 6, 10, 5, 0, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = pc;
+      ctx.beginPath(); ctx.arc(0, 0, 9, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(-3, -2, 2, 0, Math.PI*2); ctx.arc(3, -2, 2, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#111';
+      ctx.beginPath(); ctx.arc(-3, -2, 1, 0, Math.PI*2); ctx.arc(3, -2, 1, 0, Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
+
     bullets.forEach(b => { ctx.fillStyle=b.color; ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,Math.PI*2);ctx.fill(); ctx.strokeStyle=b.color+'88';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(b.x,b.y);ctx.lineTo(b.x-b.vx*0.03,b.y-b.vy*0.03);ctx.stroke(); });
     particles.forEach(p => { ctx.globalAlpha=p.life/p.max; ctx.fillStyle=p.color; ctx.beginPath();ctx.arc(p.x,p.y,p.r*(p.life/p.max),0,Math.PI*2);ctx.fill(); ctx.globalAlpha=1; });
     ctx.save(); ctx.translate(player.x,player.y); ctx.rotate(player.angle);
