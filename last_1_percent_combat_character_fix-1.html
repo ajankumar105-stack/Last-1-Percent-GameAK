@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="theme-color" content="#11151c">
+  <title>Last 1 Percent - Survival</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    body { background: #11151c; color: #f5d773; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; touch-action: manipulation; overflow: hidden; height: 100vh; }
+    #game { display: block; width: 100%; height: 100%; }
+    
+    /* Top Bar HUD */
+    #topbar { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; justify-content: space-between; gap: 10px; pointer-events: none; z-index: 10; }
+    .hud-card { background: rgba(22, 27, 34, 0.85); backdrop-filter: blur(4px); border: 1px solid #56677b; border-radius: 8px; padding: 6px 12px; color: #fff; font-size: 13px; font-weight: bold; pointer-events: auto; }
+    .bar { background: #222; border-radius: 4px; height: 8px; width: 80px; overflow: hidden; display: inline-block; vertical-align: middle; margin-left: 5px; }
+    .fill { background: #e74c3c; height: 100%; width: 100%; transition: width 0.2s; }
+
+    /* Action Buttons */
+    #topbuttons { position: absolute; top: 60px; right: 10px; display: flex; flex-direction: column; gap: 8px; z-index: 10; }
+    .btn { background: #2b3a4a; color: #fff; border: 1px solid #56677b; padding: 8px 14px; border-radius: 6px; font-weight: bold; font-size: 12px; cursor: pointer; text-align: center; }
+    .btn:active { background: #1d2733; transform: scale(0.96); }
+    .btn-primary { background: #e67e22; border-color: #d35400; color: #fff; }
+
+    /* Modals & Overlays */
+    .overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.85); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 20; padding: 20px; }
+    .hidden { display: none !important; }
+    .panel { background: #161b22; border: 1px solid #56677b; border-radius: 12px; padding: 20px; width: 100%; max-width: 420px; color: #fff; max-height: 80vh; overflow-y: auto; }
+    .panel h2 { color: #f5d773; margin-bottom: 12px; font-size: 20px; text-align: center; }
+    .row { display: flex; gap: 8px; margin-bottom: 10px; }
+    .row .btn { flex: 1; }
+    
+    /* Lists / Grid */
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; margin-top: 10px; }
+    .card { background: #222d3d; border: 1px solid #3b4c60; border-radius: 8px; padding: 8px; text-align: center; font-size: 11px; cursor: pointer; }
+    .card.active { border-color: #f5d773; background: #2c3e50; }
+    .card small { display: block; color: #a0aec0; margin-top: 4px; }
+
+    /* On-screen combat controls - attack button bottom-right, under HUD */
+    #combatControls {
+      position: absolute;
+      right: 20px;
+      bottom: 28px;
+      z-index: 30;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      pointer-events: auto;
+    }
+    #attackBtn {
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      border: 4px solid #ffcf5a;
+      background: radial-gradient(circle at 32% 22%, #ff9f4a 0%, #ff6b2b 45%, #c41e12 100%);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+      text-shadow: 0 2px 4px rgba(80, 10, 0, 0.9);
+      box-shadow:
+        0 6px 0 #7a1a12,
+        0 0 22px rgba(255, 107, 53, 0.55),
+        inset 0 2px 8px rgba(255, 255, 255, 0.25);
+      touch-action: none;
+      cursor: pointer;
+      transition: transform 0.08s ease, filter 0.08s ease, box-shadow 0.08s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      line-height: 1.05;
+    }
+    #attackBtn:active,
+    #attackBtn.pressed {
+      transform: scale(0.90) translateY(3px);
+      filter: brightness(1.2);
+      box-shadow:
+        0 2px 0 #7a1a12,
+        0 0 14px rgba(255, 107, 53, 0.7),
+        inset 0 2px 6px rgba(255, 255, 255, 0.2);
+    }
+    #attackBtn span {
+      display: block;
+      font-size: 32px;
+      line-height: 36px;
+      margin-bottom: 2px;
+    }
+    /* Joystick base - left bottom, balanced with attack button */
+    #joystickZone {
+      position: absolute;
+      bottom: 30px;
+      left: 28px;
+      width: 125px;
+      height: 125px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.06);
+      border: 2px solid rgba(255, 255, 255, 0.18);
+      z-index: 15;
+      touch-action: none;
+      box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.35);
+    }
+    #joystickKnob {
+      position: absolute;
+      top: 37px;
+      left: 37px;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: rgba(245, 215, 115, 0.45);
+      border: 2px solid #f5d773;
+      pointer-events: none;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Game Canvas -->
+  <canvas id="game"></canvas>
+
+  <!-- Virtual Joystick -->
+  <div id="joystickZone">
+    <div id="joystickKnob"></div>
+  </div>
+
+  <!-- Combat button - bottom right, under HUD / combat area -->
+  <div id="combatControls">
+    <button id="attackBtn" aria-label="Attack" type="button">
+      <span>🔫</span>
+      ATTACK
+    </button>
+  </div>
+
+  <!-- HUD Top Bar -->
+  <div id="topbar">
+    <div class="hud-card">
+      HP <div class="bar"><div id="hpFill" class="fill"></div></div>
+    </div>
+    <div class="hud-card">
+      Wave <span id="waveLabel">1</span> | <span id="waveText">0%</span>
+    </div>
+    <div class="hud-card">
+      <span id="goldText">0</span> 💰
+    </div>
+  </div>
+
+  <!-- Action Controls -->
+  <div id="topbuttons">
+    <button id="multiBtn" class="btn">MULTI: OFF</button>
+    <button id="bagMenuBtn" class="btn">BAG</button>
+    <button id="profileBtn" class="btn">PROFILE</button>
+    <button id="pauseBtn" class="btn">PAUSE</button>
+  </div>
+
+  <!-- Start / Main Menu Overlay -->
+  <div id="endMenu" class="overlay">
+    <div class="panel">
+      <h2>Last 1 Percent</h2>
+      <p style="text-align:center; margin-bottom: 15px; color:#a0aec0; font-size:13px;">
+        Survive the infected wasteland with weapons, pets, online rooms, and global ranking!
+      </p>
+      <div class="row">
+        <button id="startBtn" class="btn btn-primary">START SURVIVING</button>
+      </div>
+      <div class="row">
+        <button id="continueBtn" class="btn">CONTINUE</button>
+      </div>
+      <div class="row">
+        <button id="menuMultiBtn" class="btn">MULTIPLAYER ROOMS</button>
+      </div>
+      <div class="row">
+        <button id="menuRankBtn" class="btn">GLOBAL LEADERBOARD</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pause Overlay -->
+  <div id="pauseMenu" class="overlay hidden">
+    <div class="panel">
+      <h2>Paused</h2>
+      <p style="text-align:center; margin-bottom: 15px;">Take a breather, survivor.</p>
+      <button id="resumeBtn" class="btn btn-primary" style="width:100%; margin-bottom:8px;">RESUME</button>
+      <button id="saveBtn" class="btn" style="width:100%;">SAVE NOW</button>
+    </div>
+  </div>
+
+  <!-- Profile Overlay -->
+  <div id="profileMenu" class="overlay hidden">
+    <div class="panel">
+      <h2>Profile & Pets</h2>
+      <div class="row">
+        <label style="font-size:12px; align-self:center;">Name:</label>
+        <input id="playerNameInput" type="text" maxlength="16" value="Survivor" style="flex:1; padding:6px; background:#0d1117; color:#fff; border:1px solid #30363d; border-radius:4px;">
+      </div>
+      <div class="row">
+        <label style="font-size:12px; align-self:center;">Country:</label>
+        <select id="countrySelect" style="flex:1; padding:6px; background:#0d1117; color:#fff; border:1px solid #30363d; border-radius:4px;">
+          <option value="🇹🇭 Thailand">🇹🇭 Thailand</option>
+          <option value="🇮🇳 India">🇮🇳 India</option>
+          <option value="🇲🇲 Myanmar">🇲🇲 Myanmar</option>
+          <option value="🇺🇸 US">🇺🇸 US</option>
+          <option value="🇬🇧 UK">🇬🇧 UK</option>
+        </select>
+      </div>
+      <h3 style="font-size:14px; margin:10px 0 5px; color:#f5d773;">Pets Companion</h3>
+      <div id="petList" class="grid"></div>
+      
+      <h3 style="font-size:14px; margin:15px 0 5px; color:#f5d773;">Character Skins</h3>
+      <div id="skinList" class="grid"></div>
+      
+      <button id="closeProfileBtn" class="btn btn-primary" style="width:100%; margin-top:15px;">CLOSE</button>
+    </div>
+  </div>
+
+  <!-- Bag / Arsenal Overlay -->
+  <div id="bagMenu" class="overlay hidden">
+    <div class="panel">
+      <h2>Arsenal & Weapons</h2>
+      <p style="font-size:12px; color:#a0aec0; margin-bottom:10px; text-align:center;">
+        Unlock powerful survival weapons using coins!
+      </p>
+      <div id="weaponList" class="grid" style="margin-bottom:10px;"></div>
+      <button id="closeBagBtn" class="btn btn-primary" style="width:100%;">CLOSE</button>
+    </div>
+  </div>
+
+  <!-- Multiplayer Rooms Overlay -->
+  <div id="multiMenu" class="overlay hidden">
+    <div class="panel">
+      <h2>Multiplayer Rooms</h2>
+      <p style="font-size:12px; color:#a0aec0; margin-bottom:10px; text-align:center;">Join co-op squad rooms or host your own.</p>
+      <div class="row">
+        <button id="createRoomBtn" class="btn btn-primary">Create Room</button>
+        <button id="refreshRoomsBtn" class="btn">Refresh</button>
+      </div>
+      <div id="roomsContainer" style="margin-top:10px; max-height:200px; overflow-y:auto; display:flex; flex-direction:column; gap:6px;">
+        <div class="card" style="text-align:left; padding:10px;"><b>Alpha Squad (#101)</b><br><small>Host: Zeus (🇮🇳) | Players: 3/4</small></div>
+        <div class="card" style="text-align:left; padding:10px;"><b>Wasteland Team (#404)</b><br><small>Host: missax (🇹🇭) | Players: 2/4</small></div>
+      </div>
+      <button id="closeMultiBtn" class="btn" style="width:100%; margin-top:15px;">BACK</button>
+    </div>
+  </div>
+
+  <!-- Global Leaderboard Overlay -->
+  <div id="rankMenu" class="overlay hidden">
+    <div class="panel">
+      <h2>Global Leaderboard</h2>
+      <p style="font-size:12px; color:#a0aec0; margin-bottom:10px; text-align:center;">Top ranking survival commanders worldwide.</p>
+      <div style="font-size:12px; display:flex; flex-direction:column; gap:6px;">
+        <div style="background:#222d3d; padding:8px; border-radius:6px; display:flex; justify-content:space-between;"><span>1. 🥇 Zeus (🇮🇳)</span> <b>Wave 42</b></div>
+        <div style="background:#222d3d; padding:8px; border-radius:6px; display:flex; justify-content:space-between;"><span>2. 🥈 Kancil (🇲🇲)</span> <b>Wave 38</b></div>
+        <div style="background:#222d3d; padding:8px; border-radius:6px; display:flex; justify-content:space-between;"><span>3. 🥉 missax (🇹🇭)</span> <b>Wave 35</b></div>
+        <div style="background:#222d3d; padding:8px; border-radius:6px; display:flex; justify-content:space-between;"><span id="myRankName">4. 👤 Survivor (You)</span> <b id="rankYouScore">Wave 1</b></div>
+      </div>
+      <button id="closeRankBtn" class="btn btn-primary" style="width:100%; margin-top:15px;">CLOSE</button>
+    </div>
+  </div>
+
+  <!-- Game Logic Script -->
+  <script>
+    (() => {
+      'use strict';
+      const canvas = document.getElementById('game');
+      const ctx = canvas.getContext('2d');
+
+      let w = window.innerWidth, h = window.innerHeight, dpr = 1;
+      function resize() {
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        w = window.innerWidth;
+        h = window.innerHeight;
+        canvas.width = Math.floor(w * dpr);
+        canvas.height = Math.floor(h * dpr);
+        ctx.scale(dpr, dpr);
+      }
+      addEventListener('resize', resize);
+      resize();
+
+      const $ = id => document.getElementById(id);
+      const ui = {
+        menu: $('endMenu'),
+        pause: $('pauseMenu'),
+        bag: $('bagMenu'),
+        profile: $('profileMenu'),
+        rank: $('rankMenu'),
+        multi: $('multiMenu')
+      };
+
+      const weapons = [
+        { name: 'Survivor Pistol', damage: 24, cost: 0, unlock: 0, desc: 'Starter gun with quick shots.', range: 360, kind: 'gun' },
+        { name: 'Chicken Launcher', damage: 32, cost: 150, unlock: 1, desc: 'Fires explosive clucking chickens!', range: 320, kind: 'gun' },
+        { name: 'Banana Peel Gun', damage: 26, cost: 200, unlock: 2, desc: 'Slips and damages hordes.', range: 280, kind: 'gun' },
+        { name: 'Shotgun', damage: 60, cost: 500, unlock: 3, desc: 'Close-range heavy blast.', range: 190, kind: 'gun' },
+        { name: 'Laser Disco Ball', damage: 45, cost: 850, unlock: 4, desc: 'Party zones where zombies dance.', range: 350, kind: 'gun' },
+        { name: 'Wasteland Reaper', damage: 85, cost: 1500, unlock: 5, desc: 'Legendary survival sword.', range: 120, kind: 'melee' }
+      ];
+
+      const pets = [
+        { name: 'None', desc: 'No companion', cost: 0 },
+        { name: 'Doge (Loot+)', desc: '+50% Coins earned', cost: 200 },
+        { name: 'Battle Duck', desc: 'Auto-attacks enemies', cost: 450 },
+        { name: 'Mini Robot', desc: '+25 Max HP boost', cost: 800 }
+      ];
+
+      const skins = [
+        { name: 'Blue Recruit', color: '#8aabe8', cost: 0 },
+        { name: 'Golden Suit', color: '#ffd166', cost: 300 },
+        { name: 'Cyber Samurai', color: '#ff5d73', cost: 600 },
+        { name: 'Zombie Clown', color: '#05eA7a', cost: 1000 }
+      ];
+
+      let state = {
+        running: false, paused: false, dead: false, level: 1, hp: 100, maxHp: 100, xp: 0, coins: 50, kills: 0,
+        weapon: 0, unlocked: [0], skin: 0, skinUnlocked: [0], pet: 0, name: 'missax', country: '🇹🇭 Thailand'
+      };
+
+      try {
+        let saved = JSON.parse(localStorage.getItem('last1percent_save_v2') || 'null');
+        if (saved && typeof saved === 'object') {
+          state = { ...state, ...saved };
+        }
+      } catch (e) {
+        localStorage.removeItem('last1percent_save_v2');
+      }
+
+      state.running = false;
+      state.paused = false;
+      state.dead = false;
+
+      let player = { x: 0, y: 0, speed: 185, attackCD: 0, recoil: 0 };
+      let zombies = [];
+      let bullets = [];
+      let particles = [];
+      let floatingTexts = [];
+      let keys = {};
+      let stickVector = { x: 0, y: 0 };
+      let attackRequested = false, attackHeld = false;
+      let facing = { x: 1, y: 0 };
+      const attackButton = $('attackBtn');
+      attackButton.addEventListener('pointerdown', e => { e.preventDefault(); attackRequested = true; attackHeld = true; attackButton.setPointerCapture?.(e.pointerId); attackButton.classList.add('pressed'); });
+      const releaseAttack = () => { attackHeld = false; attackRequested = false; attackButton.classList.remove('pressed'); };
+      attackButton.addEventListener('pointerup', releaseAttack);
+      attackButton.addEventListener('pointercancel', releaseAttack);
+      attackButton.addEventListener('pointerleave', releaseAttack);
+      attackButton.addEventListener('lostpointercapture', releaseAttack);
+
+      // Joystick Handling
+      const zone = $('joystickZone');
+      const knob = $('joystickKnob');
+      let touchId = null;
+
+      zone.addEventListener('pointerdown', e => {
+        touchId = e.pointerId;
+        zone.setPointerCapture(touchId);
+        updateStick(e);
+      });
+      zone.addEventListener('pointermove', e => {
+        if (e.pointerId === touchId) updateStick(e);
+      });
+      zone.addEventListener('pointerup', e => {
+        if (e.pointerId === touchId) {
+          touchId = null;
+          stickVector = { x: 0, y: 0 };
+          knob.style.transform = `translate(0px, 0px)`;
+        }
+      });
+
+      function updateStick(e) {
+        const rect = zone.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+        let dx = e.clientX - centerX;
+        let dy = e.clientY - centerY;
+        let dist = Math.hypot(dx, dy);
+        let maxDist = 45;
+        if (dist > maxDist) {
+          dx = (dx / dist) * maxDist;
+          dy = (dy / dist) * maxDist;
+        }
+        knob.style.transform = `translate(${dx}px, ${dy}px)`;
+        stickVector = { x: dx / maxDist, y: dy / maxDist };
+      }
+
+      function rand(a, b) { return a + Math.random() * (b - a); }
+      function dist(x1, y1, x2, y2) { return Math.hypot(x2 - x1, y2 - y1); }
+
+      function saveGame() {
+        try {
+          localStorage.setItem('last1percent_save_v2', JSON.stringify({
+            ...state, running: false, paused: false, dead: false
+          }));
+        } catch (e) {}
+      }
+
+      function addNotification(msg) {
+        floatingTexts.push({ x: w / 2, y: h / 3, text: msg, life: 1.5, color: '#f5d773' });
+      }
+
+      function updateUI() {
+        $('goldText').textContent = state.coins;
+        $('waveLabel').textContent = state.level;
+        $('waveText').textContent = Math.floor(state.xp) + '%';
+        let hpPct = Math.max(0, (state.hp / state.maxHp) * 100);
+        $('hpFill').style.width = hpPct + '%';
+
+        // Pets HTML
+        let petHtml = '';
+        pets.forEach((p, i) => {
+          let active = state.pet === i ? 'active' : '';
+          petHtml += `<div class="card ${active}" onclick="selectPet(${i})"><b>${p.name}</b><br><small>${p.desc}</small></div>`;
+        });
+        if ($('petList')) $('petList').innerHTML = petHtml;
+
+        // Skins HTML
+        let skinHtml = '';
+        skins.forEach((s, i) => {
+          let active = state.skin === i ? 'active' : '';
+          skinHtml += `<div class="card ${active}" onclick="selectSkin(${i})"><b>${s.name}</b><br><small>${s.cost} 💰</small></div>`;
+        });
+        if ($('skinList')) $('skinList').innerHTML = skinHtml;
+
+        // Weapons HTML
+        let wepHtml = '';
+        weapons.forEach((wep, i) => {
+          let unlocked = state.unlocked.includes(i);
+          let active = state.weapon === i ? 'active' : '';
+          wepHtml += `<div class="card ${active}" onclick="selectWeapon(${i})"><b>${wep.name}</b><br><small>${unlocked ? 'Equipped' : wep.cost + ' 💰'}</small></div>`;
+        });
+        if ($('weaponList')) $('weaponList').innerHTML = wepHtml;
+        
+        if ($('myRankName')) $('myRankName').textContent = `4. 👤 ${state.name} (${state.country.split(' ')[0]})`;
+        if ($('rankYouScore')) $('rankYouScore').textContent = 'Wave ' + state.level;
+      }
+
+      window.selectPet = i => { state.pet = i; updateUI(); saveGame(); };
+      window.selectSkin = i => {
+        if (state.skinUnlocked.includes(i) || state.coins >= skins[i].cost) {
+          if (!state.skinUnlocked.includes(i)) {
+            state.coins -= skins[i].cost;
+            state.skinUnlocked.push(i);
+          }
+          state.skin = i;
+          updateUI();
+          saveGame();
+        } else { addNotification('Not enough coins!'); }
+      };
+      window.selectWeapon = i => {
+        if (state.unlocked.includes(i) || state.coins >= weapons[i].cost) {
+          if (!state.unlocked.includes(i)) {
+            state.coins -= weapons[i].cost;
+            state.unlocked.push(i);
+          }
+          state.weapon = i;
+          updateUI();
+          saveGame();
+        } else { addNotification('Not enough coins!'); }
+      };
+
+      function spawnZombie() {
+        let angle = Math.random() * Math.PI * 2;
+        let d = Math.max(w, h) / 2 + 60;
+        zombies.push({
+          x: player.x + Math.cos(angle) * d,
+          y: player.y + Math.sin(angle) * d,
+          hp: 40 + state.level * 10,
+          maxHp: 40 + state.level * 10,
+          speed: rand(50, 80),
+          r: 13
+        });
+      }
+
+      function startNewGame() {
+        state.name = $('playerNameInput').value || 'Survivor';
+        state.country = $('countrySelect').value;
+        state.running = true;
+        state.paused = false;
+        state.dead = false;
+        if (state.pet === 3) state.maxHp = 125; else state.maxHp = 100;
+        state.hp = state.maxHp;
+        player.x = 0; player.y = 0;
+        zombies = []; bullets = []; particles = [];
+        ui.menu.classList.add('hidden');
+        ui.pause.classList.add('hidden');
+        ui.bag.classList.add('hidden');
+        ui.profile.classList.add('hidden');
+        ui.multi.classList.add('hidden');
+        ui.rank.classList.add('hidden');
+        updateUI();
+      }
+
+      // UI Event Bindings
+      $('startBtn').onclick = startNewGame;
+      $('continueBtn').onclick = () => {
+        state.running = true;
+        ui.menu.classList.add('hidden');
+      };
+      $('pauseBtn').onclick = () => { state.paused = !state.paused; ui.pause.classList.toggle('hidden', !state.paused); };
+      $('resumeBtn').onclick = () => { state.paused = false; ui.pause.classList.add('hidden'); };
+      $('saveBtn').onclick = () => { saveGame(); addNotification("Game Saved Successfully!"); };
+      $('bagMenuBtn').onclick = () => { ui.bag.classList.toggle('hidden'); updateUI(); };
+      $('profileBtn').onclick = () => { ui.profile.classList.toggle('hidden'); updateUI(); };
+      $('menuMultiBtn').onclick = () => ui.multi.classList.remove('hidden');
+      $('menuRankBtn').onclick = () => { ui.rank.classList.remove('hidden'); updateUI(); };
+      $('closeBagBtn').onclick = () => ui.bag.classList.add('hidden');
+      $('closeProfileBtn').onclick = () => ui.profile.classList.add('hidden');
+      $('closeMultiBtn').onclick = () => ui.multi.classList.add('hidden');
+      $('closeRankBtn').onclick = () => ui.rank.classList.add('hidden');
+      
+      $('createRoomBtn').onclick = () => {
+        addNotification("Room Created! Waiting for players...");
+        $('roomsContainer').innerHTML += `<div class="card" style="text-align:left; padding:10px;"><b>${state.name}'s Room</b><br><small>Host: ${state.name} (${state.country.split(' ')[0]}) | Players: 1/4</small></div>`;
+      };
+      $('refreshRoomsBtn').onclick = () => addNotification("Rooms list refreshed!");
+
+      let lastTime = performance.now();
+      function loop(now) {
+        let dt = (now - lastTime) / 1000;
+        lastTime = now;
+        if (dt > 0.1) dt = 0.1;
+
+        if (state.running && !state.paused && !state.dead) {
+          // Movement
+          let mx = stickVector.x, my = stickVector.y;
+          if (keys['ArrowUp'] || keys['w']) my -= 1;
+          if (keys['ArrowDown'] || keys['s']) my += 1;
+          if (keys['ArrowLeft'] || keys['a']) mx -= 1;
+          if (keys['ArrowRight'] || keys['d']) mx += 1;
+
+          if (mx !== 0 || my !== 0) {
+            let len = Math.hypot(mx, my);
+            player.x += (mx / len) * player.speed * dt;
+            player.y += (my / len) * player.speed * dt;
+            facing = { x: mx / len, y: my / len };
+          }
+
+          // Spawn Zombies
+          if (zombies.length < 18 + state.level * 3 && Math.random() < 0.04) {
+            spawnZombie();
+          }
+
+          // Update Zombies
+          zombies.forEach(z => {
+            let angle = Math.atan2(player.y - z.y, player.x - z.x);
+            z.x += Math.cos(angle) * z.speed * dt;
+            z.y += Math.sin(angle) * z.speed * dt;
+
+            if (dist(player.x, player.y, z.x, z.y) < z.r + 12) {
+              state.hp -= 14 * dt;
+              if (state.hp <= 0) {
+                state.dead = true;
+                addNotification("You Died! Game Over.");
+                setTimeout(() => { ui.menu.classList.remove('hidden'); }, 1500);
+              }
+            }
+          });
+
+          // Hold-to-fire combat: starter pistol works immediately, even at a distance.
+          player.attackCD -= dt;
+          player.recoil = Math.max(0, player.recoil - dt * 5);
+          if ((attackHeld || attackRequested) && player.attackCD <= 0) {
+            const curWep = weapons[state.weapon] || weapons[0];
+            const isGun = curWep.kind === 'gun';
+            player.attackCD = isGun ? 0.22 : 0.38;
+            attackRequested = false;
+            player.recoil = 1;
+            const range = curWep.range || 360;
+            let nearest = null, minDist = range;
+            zombies.forEach(z => {
+              const d = dist(player.x, player.y, z.x, z.y);
+              if (d < minDist) { minDist = d; nearest = z; }
+            });
+            // Visible muzzle flash/tracer so the button gives immediate feedback.
+            const muzzleX = player.x + facing.x * 35;
+            const muzzleY = player.y + facing.y * 35;
+            particles.push({ x: muzzleX, y: muzzleY, life: 0.12, color: '#ffcf5a' });
+            if (nearest) {
+              nearest.hp -= curWep.damage;
+              particles.push({ x: nearest.x, y: nearest.y, life: 0.28, color: '#ffcf5a' });
+              floatingTexts.push({ x: w / 2 + (nearest.x-player.x)*0.45, y: h / 2 + (nearest.y-player.y)*0.45, text: '-' + curWep.damage, life: 0.55, color: '#ffcf5a' });
+              // Draw a short tracer toward the target.
+              particles.push({ x: player.x + (nearest.x-player.x)*0.78, y: player.y + (nearest.y-player.y)*0.78, life: 0.10, color: '#fff3b0' });
+              if (nearest.hp <= 0) {
+                const coinGain = state.pet === 1 ? 20 : 12;
+                state.coins += coinGain;
+                state.kills += 1;
+                state.xp += 22;
+                if (state.xp >= 100) {
+                  state.level += 1; state.xp = 0; state.maxHp += 15; state.hp = state.maxHp;
+                  addNotification('LEVEL UP! Wave ' + state.level);
+                  saveGame();
+                }
+                zombies = zombies.filter(z => z !== nearest);
+              }
+            }
+          }
+
+          // Pet 2 passive laser zap
+          if (state.pet === 2 && Math.random() < 0.1 && zombies.length > 0) {
+            let z = zombies[Math.floor(Math.random() * zombies.length)];
+            z.hp -= 15;
+            particles.push({ x: z.x, y: z.y, life: 0.2, color: '#3498db' });
+            if (z.hp <= 0) { zombies = zombies.filter(item => item !== z); state.kills++; }
+          }
+        }
+
+        // Render Canvas Graphics
+        ctx.fillStyle = '#11151c';
+        ctx.fillRect(0, 0, w, h);
+
+        ctx.save();
+        ctx.translate(w / 2 - player.x, h / 2 - player.y);
+
+        // Grid Lines
+        ctx.strokeStyle = '#1c232e';
+        ctx.lineWidth = 2;
+        let gridSize = 80;
+        let startX = Math.floor((player.x - w) / gridSize) * gridSize;
+        let endX = Math.floor((player.x + w) / gridSize) * gridSize;
+        let startY = Math.floor((player.y - h) / gridSize) * gridSize;
+        let endY = Math.floor((player.y + h) / gridSize) * gridSize;
+
+        for (let x = startX; x < endX; x += gridSize) {
+          ctx.beginPath(); ctx.moveTo(x, startY); ctx.lineTo(x, endY); ctx.stroke();
+        }
+        for (let y = startY; y < endY; y += gridSize) {
+          ctx.beginPath(); ctx.moveTo(startX, y); ctx.lineTo(endX, y); ctx.stroke();
+        }
+
+        // Zombies
+        zombies.forEach(z => {
+          ctx.save(); ctx.translate(z.x, z.y);
+          ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(0,5,z.r+3,z.r*.75,0,0,Math.PI*2); ctx.fill();
+          ctx.fillStyle = '#476f48'; ctx.beginPath(); ctx.roundRect(-z.r*.62,-z.r*.45,z.r*1.25,z.r*1.55,5); ctx.fill();
+          ctx.fillStyle = '#739b58'; ctx.beginPath(); ctx.arc(0,-z.r*.55,z.r*.68,0,Math.PI*2); ctx.fill();
+          ctx.fillStyle = '#d9f58a'; ctx.fillRect(-5,-z.r*.7,3,3); ctx.fillRect(2,-z.r*.7,3,3);
+          ctx.fillStyle = '#26362b'; ctx.fillRect(-z.r*.85,-1,5,10); ctx.fillRect(z.r*.5,-1,5,10);
+          // health strip
+          ctx.fillStyle = '#18251b'; ctx.fillRect(-z.r,-z.r-8,z.r*2,3);
+          ctx.fillStyle = '#e74c3c'; ctx.fillRect(-z.r,-z.r-8,Math.max(0,z.r*2*(z.hp/z.maxHp)),3);
+          ctx.restore();
+        });
+
+        // Detailed top-down survivor: shadow, boots, backpack, armour, helmet and visible rifle.
+        ctx.save();
+        ctx.translate(player.x, player.y);
+        const ang = Math.atan2(facing.y, facing.x);
+        ctx.rotate(ang);
+        // Ground shadow
+        ctx.fillStyle = 'rgba(0,0,0,.48)';
+        ctx.beginPath(); ctx.ellipse(0, 7, 22, 17, 0, 0, Math.PI*2); ctx.fill();
+        // Boots and legs
+        ctx.fillStyle = '#111923';
+        ctx.beginPath(); ctx.roundRect(-12, 7, 9, 12, 3); ctx.fill();
+        ctx.beginPath(); ctx.roundRect(4, 7, 9, 12, 3); ctx.fill();
+        ctx.fillStyle = '#7f8b98'; ctx.fillRect(-12, 14, 9, 3); ctx.fillRect(4, 14, 9, 3);
+        // Backpack behind torso
+        ctx.fillStyle = '#263d35'; ctx.strokeStyle = '#8aa69b'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.roundRect(-17, -9, 10, 19, 4); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = '#d9a441'; ctx.fillRect(-15, -4, 6, 2); ctx.fillRect(-15, 3, 6, 2);
+        // Arms
+        ctx.fillStyle = '#c99570';
+        ctx.beginPath(); ctx.roundRect(3, -13, 17, 7, 3); ctx.fill();
+        ctx.beginPath(); ctx.roundRect(3, 6, 15, 7, 3); ctx.fill();
+        // Main tactical body armour
+        ctx.fillStyle = skins[state.skin].color;
+        ctx.strokeStyle = '#e9f2f7'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.roundRect(-11, -13, 23, 27, 7); ctx.fill(); ctx.stroke();
+        // Vest plates and straps
+        ctx.fillStyle = '#26394b'; ctx.beginPath(); ctx.roundRect(-7, -9, 15, 18, 4); ctx.fill();
+        ctx.fillStyle = '#f5d773'; ctx.fillRect(-2, -7, 4, 14);
+        ctx.fillStyle = '#93a4b4'; ctx.fillRect(-7, -4, 15, 2); ctx.fillRect(-7, 3, 15, 2);
+        // Helmet and bright visor
+        ctx.fillStyle = '#172432'; ctx.strokeStyle = '#9fb6c9'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(2, -13, 10, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = '#66e5ff'; ctx.beginPath(); ctx.roundRect(4, -17, 8, 5, 2); ctx.fill();
+        ctx.fillStyle = '#fff'; ctx.fillRect(7, -16, 3, 1);
+        // Rifle held forward with barrel flash recoil animation
+        ctx.fillStyle = '#101820'; ctx.strokeStyle = '#718292'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.roundRect(13 - player.recoil*3, -5, 22, 7, 2); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = '#8d9ba7'; ctx.fillRect(25 - player.recoil*3, -3, 13, 3);
+        ctx.fillStyle = '#202a34'; ctx.fillRect(18, 2, 5, 7);
+        ctx.fillStyle = '#d5b56a'; ctx.fillRect(14, -2, 5, 2);
+        ctx.restore();
+
+        // Particles
+        particles.forEach(p => {
+          p.life -= dt;
+          ctx.fillStyle = p.color;
+          ctx.beginPath(); ctx.arc(p.x, p.y, 5, 0, Math.PI * 2); ctx.fill();
+        });
+        particles = particles.filter(p => p.life > 0);
+
+        ctx.restore();
+
+        // Floating notifications
+        floatingTexts.forEach(ft => {
+          ft.life -= dt;
+          ft.y -= 25 * dt;
+          ctx.fillStyle = ft.color;
+          ctx.font = 'bold 18px system-ui';
+          ctx.textAlign = 'center';
+          ctx.fillText(ft.text, ft.x, ft.y);
+        });
+        floatingTexts = floatingTexts.filter(ft => ft.life > 0);
+
+        attackButton.style.display = (state.running && !state.paused && !state.dead) ? 'block' : 'none';
+        if (!state.running || state.paused || state.dead) { attackHeld = false; attackRequested = false; }
+        updateUI();
+        requestAnimationFrame(loop);
+      }
+
+      window.addEventListener('keydown', e => keys[e.key] = true);
+      window.addEventListener('keyup', e => keys[e.key] = false);
+
+      requestAnimationFrame(loop);
+    })();
+  </script>
+</body>
+</html>
