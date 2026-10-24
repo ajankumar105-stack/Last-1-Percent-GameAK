@@ -6,494 +6,860 @@
   <meta name="theme-color" content="#11151c">
   <title>Last 1 Percent - Survival</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; }
-    body { background: #0a0e14; color: #f5d773; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; touch-action: manipulation; overflow: hidden; height: 100vh; width: 100vw; }
-    #game { display: block; width: 100%; height: 100%; }
-    #topbar { position: absolute; top: 8px; left: 8px; right: 8px; display: flex; justify-content: space-between; gap: 6px; pointer-events: none; z-index: 10; flex-wrap: wrap; }
-    .hud-card { background: rgba(15,20,28,0.88); backdrop-filter: blur(6px); border: 1px solid #3a4a5c; border-radius: 10px; padding: 6px 10px; color: #fff; font-size: 12px; font-weight: 700; pointer-events: auto; display: flex; align-items: center; gap: 6px; }
-    .bar { background: #1a222d; border-radius: 5px; height: 9px; width: 70px; overflow: hidden; }
-    .fill { height: 100%; width: 100%; transition: width 0.15s; border-radius: 5px; }
-    #hpFill { background: linear-gradient(90deg,#e74c3c,#c0392b); }
-    #xpFill { background: linear-gradient(90deg,#f5d773,#e67e22); }
-    #ammoFill { background: linear-gradient(90deg,#3498db,#2980b9); }
-    #topbuttons { position: absolute; top: 58px; right: 8px; display: flex; flex-direction: column; gap: 6px; z-index: 10; }
-    .btn { background: #1e2a38; color: #e8eef5; border: 1px solid #4a5c70; padding: 8px 12px; border-radius: 8px; font-weight: 700; font-size: 11px; cursor: pointer; text-align: center; transition: 0.1s; }
-    .btn:active { background: #15202b; transform: scale(0.96); }
-    .btn-primary { background: linear-gradient(180deg,#e67e22,#d35400); border-color: #e67e22; color: #fff; }
-    .btn-danger { background: #c0392b; border-color: #e74c3c; }
-    .overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.88); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 40; padding: 16px; }
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    body { background: #11151c; color: #f5d773; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; touch-action: manipulation; overflow: hidden; height: 100dvh; }
+    #game { display: block; width: 100%; height: 100%; touch-action: none; }
+    #topbar { flex-wrap: wrap; gap: 5px; }
+    .hud-card { padding: 5px 8px; font-size: 11px; }
+    @media (max-width: 480px) {
+      #topbuttons { top: 82px; right: 7px; gap: 5px; }
+      .btn { padding: 7px 9px; font-size: 10px; }
+      #attackBtn { width: 88px; height: 88px; font-size: 12px; }
+      #attackBtn span { font-size: 26px; line-height: 28px; }
+      #joystickZone { width: 108px; height: 108px; left: 15px; bottom: 18px; }
+      #joystickKnob { top: 29px; left: 29px; }
+      #combatControls { right: 15px; bottom: 20px; }
+    }
+    
+    /* Top Bar HUD */
+    #topbar { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; justify-content: space-between; gap: 10px; pointer-events: none; z-index: 10; }
+    .hud-card { background: rgba(22, 27, 34, 0.85); backdrop-filter: blur(4px); border: 1px solid #56677b; border-radius: 8px; padding: 6px 12px; color: #fff; font-size: 13px; font-weight: bold; pointer-events: auto; }
+    .bar { background: #222; border-radius: 4px; height: 8px; width: 80px; overflow: hidden; display: inline-block; vertical-align: middle; margin-left: 5px; }
+    .fill { background: #e74c3c; height: 100%; width: 100%; transition: width 0.2s; }
+
+    /* Action Buttons */
+    #topbuttons { position: absolute; top: 60px; right: 10px; display: flex; flex-direction: column; gap: 8px; z-index: 10; }
+    .btn { background: #2b3a4a; color: #fff; border: 1px solid #56677b; padding: 8px 14px; border-radius: 6px; font-weight: bold; font-size: 12px; cursor: pointer; text-align: center; }
+    .btn:active { background: #1d2733; transform: scale(0.96); }
+    .btn-primary { background: #e67e22; border-color: #d35400; color: #fff; }
+
+    /* Modals & Overlays */
+    .overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.85); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 20; padding: 20px; }
     .hidden { display: none !important; }
-    .panel { background: #121820; border: 1px solid #3a4a5c; border-radius: 14px; padding: 18px; width: 100%; max-width: 400px; color: #fff; max-height: 85vh; overflow-y: auto; box-shadow: 0 12px 40px rgba(0,0,0,0.5); }
-    .panel h2 { color: #f5d773; margin-bottom: 10px; font-size: 20px; text-align: center; }
-    .row { display: flex; gap: 8px; margin-bottom: 8px; }
+    .panel { background: #161b22; border: 1px solid #56677b; border-radius: 12px; padding: 20px; width: 100%; max-width: 420px; color: #fff; max-height: 80vh; overflow-y: auto; }
+    .panel h2 { color: #f5d773; margin-bottom: 12px; font-size: 20px; text-align: center; }
+    .row { display: flex; gap: 8px; margin-bottom: 10px; }
     .row .btn { flex: 1; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(105px, 1fr)); gap: 8px; margin-top: 8px; }
-    .card { background: #1a2430; border: 1px solid #334455; border-radius: 9px; padding: 8px; text-align: center; font-size: 11px; cursor: pointer; transition: 0.12s; }
-    .card:active { transform: scale(0.97); }
-    .card.active { border-color: #f5d773; background: #243040; box-shadow: 0 0 12px rgba(245,215,115,0.25); }
-    .card small { display: block; color: #8a9bb0; margin-top: 3px; font-size: 10px; }
-    .card.locked { opacity: 0.55; }
-    #combatControls { position: absolute; right: 16px; bottom: 24px; z-index: 25; display: flex; flex-direction: column; align-items: center; gap: 10px; pointer-events: auto; }
+    
+    /* Lists / Grid */
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; margin-top: 10px; }
+    .card { background: #222d3d; border: 1px solid #3b4c60; border-radius: 8px; padding: 8px; text-align: center; font-size: 11px; cursor: pointer; }
+    .card.active { border-color: #f5d773; background: #2c3e50; }
+    .card small { display: block; color: #a0aec0; margin-top: 4px; }
+
+    /* On-screen combat controls - attack button bottom-right, under HUD */
+    #combatControls {
+      position: absolute;
+      right: 20px;
+      bottom: 28px;
+      z-index: 30;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      pointer-events: auto;
+    }
     #attackBtn {
-      width: 108px; height: 108px; border-radius: 50%;
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
       border: 4px solid #ffcf5a;
-      background: radial-gradient(circle at 30% 25%, #ff9f4a 0%, #ff5a2b 50%, #b91c12 100%);
-      color: #fff; font-size: 13px; font-weight: 900; letter-spacing: 0.4px;
-      text-shadow: 0 2px 4px rgba(60,5,0,0.9);
-      box-shadow: 0 6px 0 #6e1810, 0 0 20px rgba(255,90,40,0.5), inset 0 2px 10px rgba(255,255,255,0.22);
-      touch-action: none; cursor: pointer;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      transition: transform 0.07s, filter 0.07s, box-shadow 0.07s;
+      background: radial-gradient(circle at 32% 22%, #ff9f4a 0%, #ff6b2b 45%, #c41e12 100%);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+      text-shadow: 0 2px 4px rgba(80, 10, 0, 0.9);
+      box-shadow:
+        0 6px 0 #7a1a12,
+        0 0 22px rgba(255, 107, 53, 0.55),
+        inset 0 2px 8px rgba(255, 255, 255, 0.25);
+      touch-action: none;
+      cursor: pointer;
+      transition: transform 0.08s ease, filter 0.08s ease, box-shadow 0.08s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      line-height: 1.05;
     }
-    #attackBtn:active, #attackBtn.pressed {
-      transform: scale(0.9) translateY(4px);
+    #attackBtn:active,
+    #attackBtn.pressed {
+      transform: scale(0.90) translateY(3px);
       filter: brightness(1.2);
-      box-shadow: 0 2px 0 #6e1810, 0 0 14px rgba(255,90,40,0.7), inset 0 2px 6px rgba(255,255,255,0.18);
+      box-shadow:
+        0 2px 0 #7a1a12,
+        0 0 14px rgba(255, 107, 53, 0.7),
+        inset 0 2px 6px rgba(255, 255, 255, 0.2);
     }
-    #attackBtn span { font-size: 30px; line-height: 32px; }
-    #reloadBtn {
-      width: 64px; height: 64px; border-radius: 50%;
-      border: 2px solid #5dade2; background: radial-gradient(circle at 35% 30%, #5dade2, #1a5276);
-      color: #fff; font-size: 11px; font-weight: 800;
-      box-shadow: 0 4px 0 #154360; touch-action: none;
-      display: none; align-items: center; justify-content: center;
+    #attackBtn span {
+      display: block;
+      font-size: 32px;
+      line-height: 36px;
+      margin-bottom: 2px;
     }
-    #reloadBtn.show { display: flex; }
-    #reloadBtn:active { transform: scale(0.92); }
+    /* Joystick base - left bottom, balanced with attack button */
     #joystickZone {
-      position: absolute; bottom: 26px; left: 22px;
-      width: 128px; height: 128px; border-radius: 50%;
-      background: rgba(255,255,255,0.05); border: 2px solid rgba(255,255,255,0.14);
-      z-index: 20; touch-action: none;
-      box-shadow: inset 0 0 20px rgba(0,0,0,0.4);
+      position: absolute;
+      bottom: 30px;
+      left: 28px;
+      width: 125px;
+      height: 125px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.06);
+      border: 2px solid rgba(255, 255, 255, 0.18);
+      z-index: 15;
+      touch-action: none;
+      box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.35);
     }
     #joystickKnob {
-      position: absolute; top: 39px; left: 39px;
-      width: 50px; height: 50px; border-radius: 50%;
-      background: rgba(245,215,115,0.42); border: 2px solid #f5d773;
-      pointer-events: none; box-shadow: 0 2px 10px rgba(0,0,0,0.45);
+      position: absolute;
+      top: 37px;
+      left: 37px;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: rgba(245, 215, 115, 0.45);
+      border: 2px solid #f5d773;
+      pointer-events: none;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
     }
-    #waveBanner {
-      position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
-      font-size: 28px; font-weight: 900; color: #f5d773; text-shadow: 0 0 20px #f5d77388;
-      opacity: 0; transition: opacity 0.4s; z-index: 12; pointer-events: none;
-    }
-    #waveBanner.show { opacity: 1; }
   </style>
 </head>
 <body>
+
+  <!-- Game Canvas -->
   <canvas id="game"></canvas>
-  <div id="waveBanner">WAVE 1</div>
-  <div id="joystickZone"><div id="joystickKnob"></div></div>
+
+  <!-- Virtual Joystick -->
+  <div id="joystickZone">
+    <div id="joystickKnob"></div>
+  </div>
+
+  <!-- Combat button - bottom right, under HUD / combat area -->
   <div id="combatControls">
-    <button id="reloadBtn" type="button">RELOAD</button>
-    <button id="attackBtn" aria-label="Attack" type="button"><span>🔫</span>FIRE</button>
+    <button id="attackBtn" aria-label="Attack" type="button">
+      <span>🔫</span>
+      ATTACK
+    </button>
   </div>
+
+  <!-- HUD Top Bar -->
   <div id="topbar">
-    <div class="hud-card">HP <div class="bar"><div id="hpFill" class="fill"></div></div><span id="hpText">100</span></div>
-    <div class="hud-card">Wave <span id="waveLabel">1</span><div class="bar" style="width:50px"><div id="xpFill" class="fill" style="width:0%"></div></div></div>
-    <div class="hud-card"><span id="ammoText">12/12</span><div class="bar" style="width:40px"><div id="ammoFill" class="fill"></div></div></div>
-    <div class="hud-card"><span id="goldText">0</span> 💰</div>
+    <div class="hud-card">
+      HP <div class="bar"><div id="hpFill" class="fill"></div></div>
+    </div>
+    <div class="hud-card">
+      Wave <span id="waveLabel">1</span> | <span id="waveText">0%</span>
+    </div>
+    <div class="hud-card">
+      <span id="goldText">0</span> 💰
+    </div>
+    <div class="hud-card">AMMO <span id="ammoText">12/12</span></div>
   </div>
+
+  <!-- Action Controls -->
   <div id="topbuttons">
+    <button id="multiBtn" class="btn">MULTI: OFF</button>
     <button id="bagMenuBtn" class="btn">BAG</button>
     <button id="profileBtn" class="btn">PROFILE</button>
+    <button id="reloadBtn" class="btn">RELOAD</button>
     <button id="pauseBtn" class="btn">PAUSE</button>
   </div>
+
+  <!-- Start / Main Menu Overlay -->
   <div id="endMenu" class="overlay">
     <div class="panel">
       <h2>Last 1 Percent</h2>
-      <p style="text-align:center;margin-bottom:14px;color:#8a9bb0;font-size:13px;">Survive the infected wasteland. Real bullets, bosses, pets & power-ups!</p>
-      <div class="row"><button id="startBtn" class="btn btn-primary">START SURVIVING</button></div>
-      <div class="row"><button id="continueBtn" class="btn">CONTINUE</button></div>
-      <div class="row"><button id="menuRankBtn" class="btn">LEADERBOARD</button><button id="menuMultiBtn" class="btn">ROOMS</button></div>
+      <p style="text-align:center; margin-bottom: 15px; color:#a0aec0; font-size:13px;">
+        Survive the infected wasteland with weapons, pets, online rooms, and global ranking!
+      </p>
+      <div class="row">
+        <button id="startBtn" class="btn btn-primary">START SURVIVING</button>
+      </div>
+      <div class="row">
+        <button id="continueBtn" class="btn">CONTINUE</button>
+      </div>
+      <div class="row">
+        <button id="menuMultiBtn" class="btn">MULTIPLAYER ROOMS</button>
+      </div>
+      <div class="row">
+        <button id="menuRankBtn" class="btn">GLOBAL LEADERBOARD</button>
+      </div>
     </div>
   </div>
+
+  <!-- Pause Overlay -->
   <div id="pauseMenu" class="overlay hidden">
     <div class="panel">
       <h2>Paused</h2>
-      <p style="text-align:center;margin-bottom:12px;color:#8a9bb0;">Take a breather.</p>
-      <button id="resumeBtn" class="btn btn-primary" style="width:100%;margin-bottom:8px;">RESUME</button>
-      <button id="saveBtn" class="btn" style="width:100%;margin-bottom:8px;">SAVE NOW</button>
-      <button id="quitBtn" class="btn btn-danger" style="width:100%;">QUIT TO MENU</button>
+      <p style="text-align:center; margin-bottom: 15px;">Take a breather, survivor.</p>
+      <button id="resumeBtn" class="btn btn-primary" style="width:100%; margin-bottom:8px;">RESUME</button>
+      <button id="saveBtn" class="btn" style="width:100%; margin-bottom:8px;">SAVE NOW</button>
+      <button id="restartBtn" class="btn" style="width:100%;">RESTART RUN</button>
     </div>
   </div>
+
+  <!-- Profile Overlay -->
   <div id="profileMenu" class="overlay hidden">
     <div class="panel">
       <h2>Profile & Pets</h2>
-      <div class="row"><label style="font-size:12px;align-self:center;">Name:</label>
-        <input id="playerNameInput" type="text" maxlength="14" value="Survivor" style="flex:1;padding:7px;background:#0d1117;color:#fff;border:1px solid #30363d;border-radius:6px;"></div>
-      <div class="row"><label style="font-size:12px;align-self:center;">Country:</label>
-        <select id="countrySelect" style="flex:1;padding:7px;background:#0d1117;color:#fff;border:1px solid #30363d;border-radius:6px;">
+      <div class="row">
+        <label style="font-size:12px; align-self:center;">Name:</label>
+        <input id="playerNameInput" type="text" maxlength="16" value="Survivor" style="flex:1; padding:6px; background:#0d1117; color:#fff; border:1px solid #30363d; border-radius:4px;">
+      </div>
+      <div class="row">
+        <label style="font-size:12px; align-self:center;">Country:</label>
+        <select id="countrySelect" style="flex:1; padding:6px; background:#0d1117; color:#fff; border:1px solid #30363d; border-radius:4px;">
           <option value="🇹🇭 Thailand">🇹🇭 Thailand</option>
           <option value="🇮🇳 India">🇮🇳 India</option>
           <option value="🇲🇲 Myanmar">🇲🇲 Myanmar</option>
           <option value="🇺🇸 US">🇺🇸 US</option>
           <option value="🇬🇧 UK">🇬🇧 UK</option>
-        </select></div>
-      <h3 style="font-size:13px;margin:12px 0 4px;color:#f5d773;">Pets</h3>
+        </select>
+      </div>
+      <h3 style="font-size:14px; margin:10px 0 5px; color:#f5d773;">Pets Companion</h3>
       <div id="petList" class="grid"></div>
-      <h3 style="font-size:13px;margin:12px 0 4px;color:#f5d773;">Skins</h3>
+      
+      <h3 style="font-size:14px; margin:15px 0 5px; color:#f5d773;">Character Skins</h3>
       <div id="skinList" class="grid"></div>
-      <button id="closeProfileBtn" class="btn btn-primary" style="width:100%;margin-top:14px;">CLOSE</button>
+      
+      <button id="closeProfileBtn" class="btn btn-primary" style="width:100%; margin-top:15px;">CLOSE</button>
     </div>
   </div>
+
+  <!-- Bag / Arsenal Overlay -->
   <div id="bagMenu" class="overlay hidden">
     <div class="panel">
-      <h2>Arsenal</h2>
-      <p style="font-size:12px;color:#8a9bb0;margin-bottom:8px;text-align:center;">Unlock weapons with coins</p>
+      <h2>Arsenal & Weapons</h2>
+      <p style="font-size:12px; color:#a0aec0; margin-bottom:10px; text-align:center;">
+        Unlock powerful survival weapons using coins!
+      </p>
       <div id="weaponList" class="grid" style="margin-bottom:10px;"></div>
       <button id="closeBagBtn" class="btn btn-primary" style="width:100%;">CLOSE</button>
     </div>
   </div>
+
+  <!-- Multiplayer Rooms Overlay -->
   <div id="multiMenu" class="overlay hidden">
     <div class="panel">
-      <h2>Squad Rooms</h2>
-      <p style="font-size:12px;color:#8a9bb0;margin-bottom:8px;text-align:center;">Local co-op simulation</p>
-      <div class="row"><button id="createRoomBtn" class="btn btn-primary">Create Room</button><button id="refreshRoomsBtn" class="btn">Refresh</button></div>
-      <div id="roomsContainer" style="margin-top:8px;max-height:180px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;"></div>
-      <button id="closeMultiBtn" class="btn" style="width:100%;margin-top:12px;">BACK</button>
+      <h2>Multiplayer Rooms</h2>
+      <p style="font-size:12px; color:#a0aec0; margin-bottom:10px; text-align:center;">Join co-op squad rooms or host your own.</p>
+      <div class="row">
+        <button id="createRoomBtn" class="btn btn-primary">Create Room</button>
+        <button id="refreshRoomsBtn" class="btn">Refresh</button>
+      </div>
+      <div id="roomsContainer" style="margin-top:10px; max-height:200px; overflow-y:auto; display:flex; flex-direction:column; gap:6px;">
+        <div class="card" style="text-align:left; padding:10px;"><b>Alpha Squad (#101)</b><br><small>Host: Zeus (🇮🇳) | Players: 3/4</small></div>
+        <div class="card" style="text-align:left; padding:10px;"><b>Wasteland Team (#404)</b><br><small>Host: missax (🇹🇭) | Players: 2/4</small></div>
+      </div>
+      <button id="closeMultiBtn" class="btn" style="width:100%; margin-top:15px;">BACK</button>
     </div>
   </div>
+
+  <!-- Global Leaderboard Overlay -->
   <div id="rankMenu" class="overlay hidden">
     <div class="panel">
-      <h2>Leaderboard</h2>
-      <p style="font-size:12px;color:#8a9bb0;margin-bottom:8px;text-align:center;">Local best + global sim</p>
-      <div id="rankList" style="font-size:12px;display:flex;flex-direction:column;gap:5px;"></div>
-      <button id="closeRankBtn" class="btn btn-primary" style="width:100%;margin-top:14px;">CLOSE</button>
+      <h2>Global Leaderboard</h2>
+      <p style="font-size:12px; color:#a0aec0; margin-bottom:10px; text-align:center;">Top ranking survival commanders worldwide.</p>
+      <div style="font-size:12px; display:flex; flex-direction:column; gap:6px;">
+        <div style="background:#222d3d; padding:8px; border-radius:6px; display:flex; justify-content:space-between;"><span>1. 🥇 Zeus (🇮🇳)</span> <b>Wave 42</b></div>
+        <div style="background:#222d3d; padding:8px; border-radius:6px; display:flex; justify-content:space-between;"><span>2. 🥈 Kancil (🇲🇲)</span> <b>Wave 38</b></div>
+        <div style="background:#222d3d; padding:8px; border-radius:6px; display:flex; justify-content:space-between;"><span>3. 🥉 missax (🇹🇭)</span> <b>Wave 35</b></div>
+        <div style="background:#222d3d; padding:8px; border-radius:6px; display:flex; justify-content:space-between;"><span id="myRankName">4. 👤 Survivor (You)</span> <b id="rankYouScore">Wave 1</b></div>
+      </div>
+      <button id="closeRankBtn" class="btn btn-primary" style="width:100%; margin-top:15px;">CLOSE</button>
     </div>
   </div>
-  <div id="gameOverMenu" class="overlay hidden">
-    <div class="panel">
-      <h2 style="color:#e74c3c;">YOU DIED</h2>
-      <p id="goStats" style="text-align:center;margin-bottom:14px;color:#8a9bb0;font-size:13px;"></p>
-      <div class="row"><button id="retryBtn" class="btn btn-primary">RETRY</button></div>
-      <div class="row"><button id="menuFromGoBtn" class="btn">MAIN MENU</button></div>
-    </div>
-  </div>
-<script>
-(() => {
-  'use strict';
-  const canvas = document.getElementById('game');
-  const ctx = canvas.getContext('2d');
-  let w = 0, h = 0, dpr = 1;
-  function resize() {
-    dpr = Math.min(window.devicePixelRatio || 1, 2);
-    w = window.innerWidth; h = window.innerHeight;
-    canvas.width = Math.floor(w * dpr); canvas.height = Math.floor(h * dpr);
-    canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  }
-  addEventListener('resize', resize); resize();
-  const $ = id => document.getElementById(id);
-  const ui = { menu: $('endMenu'), pause: $('pauseMenu'), bag: $('bagMenu'), profile: $('profileMenu'), rank: $('rankMenu'), multi: $('multiMenu'), gameOver: $('gameOverMenu') };
 
-  const weapons = [
-    { name: 'Survivor Pistol', dmg: 22, cost: 0, mag: 12, reload: 1.1, fireRate: 0.22, range: 380, bulletSpeed: 620, kind: 'gun', spread: 0.04, pellets: 1, color: '#ffcf5a' },
-    { name: 'Chicken Launcher', dmg: 38, cost: 180, mag: 6, reload: 1.6, fireRate: 0.45, range: 340, bulletSpeed: 480, kind: 'gun', spread: 0.08, pellets: 1, color: '#f39c12', special: 'explode' },
-    { name: 'Banana Peel Gun', dmg: 18, cost: 220, mag: 15, reload: 1.3, fireRate: 0.18, range: 300, bulletSpeed: 550, kind: 'gun', spread: 0.12, pellets: 1, color: '#f1c40f', special: 'slow' },
-    { name: 'Combat Shotgun', dmg: 16, cost: 550, mag: 6, reload: 1.8, fireRate: 0.55, range: 200, bulletSpeed: 700, kind: 'gun', spread: 0.22, pellets: 6, color: '#e67e22' },
-    { name: 'Laser Disco', dmg: 14, cost: 900, mag: 30, reload: 1.4, fireRate: 0.08, range: 420, bulletSpeed: 900, kind: 'gun', spread: 0.02, pellets: 1, color: '#9b59b6', special: 'pierce' },
-    { name: 'Wasteland Reaper', dmg: 95, cost: 1600, mag: 1, reload: 0.6, fireRate: 0.5, range: 95, bulletSpeed: 0, kind: 'melee', spread: 0, pellets: 1, color: '#ecf0f1' }
-  ];
-  const pets = [
-    { name: 'None', desc: 'No companion', cost: 0 },
-    { name: 'Doge', desc: '+60% coins', cost: 250 },
-    { name: 'Battle Duck', desc: 'Auto laser zap', cost: 500 },
-    { name: 'Mini Bot', desc: '+30 Max HP + regen', cost: 850 },
-    { name: 'Shadow Cat', desc: 'Faster move + crit', cost: 1100 }
-  ];
-  const skins = [
-    { name: 'Blue Recruit', color: '#6a9bd8', cost: 0 },
-    { name: 'Golden Suit', color: '#ffd166', cost: 350 },
-    { name: 'Cyber Red', color: '#ff5d73', cost: 650 },
-    { name: 'Toxic Green', color: '#2ecc71', cost: 900 },
-    { name: 'Night Ops', color: '#34495e', cost: 1200 }
-  ];
+  <!-- Game Logic Script -->
+  <script>
+    (() => {
+      'use strict';
+      const canvas = document.getElementById('game');
+      const ctx = canvas.getContext('2d');
 
-  let state = { running: false, paused: false, dead: false, level: 1, hp: 100, maxHp: 100, xp: 0, coins: 80, kills: 0, weapon: 0, unlocked: [0], skin: 0, skinUnlocked: [0], pet: 0, name: 'Survivor', country: '🇹🇭 Thailand', highWave: 1 };
-  try { const s = JSON.parse(localStorage.getItem('l1p_v3') || 'null'); if (s && typeof s === 'object') state = { ...state, ...s, running: false, paused: false, dead: false }; } catch (e) { localStorage.removeItem('l1p_v3'); }
+      let w = window.innerWidth, h = window.innerHeight, dpr = 1;
+      function resize() {
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        w = window.innerWidth;
+        h = window.innerHeight;
+        canvas.width = Math.floor(w * dpr);
+        canvas.height = Math.floor(h * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+      addEventListener('resize', resize);
+      resize();
 
-  let player = { x: 0, y: 0, speed: 195, angle: 0, recoil: 0 };
-  let bullets = [], zombies = [], particles = [], powerups = [], floatingTexts = [];
-  let keys = {}, stick = { x: 0, y: 0 };
-  let attackHeld = false, attackReq = false;
-  let ammo = 12, reloading = false, reloadTimer = 0, fireCD = 0, petTimer = 0;
-  let bossSpawned = false, waveAnnounce = 0, shake = 0;
-  let audioCtx = null;
+      const $ = id => document.getElementById(id);
+      const ui = {
+        menu: $('endMenu'),
+        pause: $('pauseMenu'),
+        bag: $('bagMenu'),
+        profile: $('profileMenu'),
+        rank: $('rankMenu'),
+        multi: $('multiMenu')
+      };
 
-  function ensureAudio() { if (!audioCtx) { try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); }
-  function beep(freq, dur, type = 'square', vol = 0.08) {
-    if (!audioCtx) return;
-    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-    o.type = type; o.frequency.value = freq; g.gain.value = vol;
-    o.connect(g); g.connect(audioCtx.destination); o.start();
-    g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur); o.stop(audioCtx.currentTime + dur);
-  }
-  function sfxShoot() { ensureAudio(); beep(180 + Math.random()*80, 0.06, 'square', 0.07); }
-  function sfxHit() { ensureAudio(); beep(90, 0.08, 'sawtooth', 0.06); }
-  function sfxReload() { ensureAudio(); beep(220, 0.12, 'triangle', 0.05); beep(160, 0.18, 'triangle', 0.04); }
-  function sfxLevel() { ensureAudio(); beep(400, 0.1, 'sine', 0.08); setTimeout(() => beep(600, 0.15, 'sine', 0.07), 100); }
-  function sfxDie() { ensureAudio(); beep(80, 0.4, 'sawtooth', 0.1); }
-  function sfxPickup() { ensureAudio(); beep(520, 0.08, 'sine', 0.07); beep(720, 0.1, 'sine', 0.06); }
+      const weapons = [
+        { name: 'Survivor Pistol', damage: 24, cost: 0, unlock: 0, desc: 'Starter gun with quick shots.', range: 360, kind: 'gun' },
+        { name: 'Chicken Launcher', damage: 32, cost: 150, unlock: 1, desc: 'Fires explosive clucking chickens!', range: 320, kind: 'gun' },
+        { name: 'Banana Peel Gun', damage: 26, cost: 200, unlock: 2, desc: 'Slips and damages hordes.', range: 280, kind: 'gun' },
+        { name: 'Shotgun', damage: 60, cost: 500, unlock: 3, desc: 'Close-range heavy blast.', range: 190, kind: 'gun' },
+        { name: 'Laser Disco Ball', damage: 45, cost: 850, unlock: 4, desc: 'Party zones where zombies dance.', range: 350, kind: 'gun' },
+        { name: 'Wasteland Reaper', damage: 85, cost: 1500, unlock: 5, desc: 'Legendary survival sword.', range: 120, kind: 'melee' }
+      ];
 
-  function rand(a, b) { return a + Math.random() * (b - a); }
-  function dist(x1, y1, x2, y2) { return Math.hypot(x2 - x1, y2 - y1); }
+      const pets = [
+        { name: 'None', desc: 'No companion', cost: 0 },
+        { name: 'Doge (Loot+)', desc: '+50% Coins earned', cost: 200 },
+        { name: 'Battle Duck', desc: 'Auto-attacks enemies', cost: 450 },
+        { name: 'Mini Robot', desc: '+25 Max HP boost', cost: 800 }
+      ];
 
-  function saveGame() {
-    try {
-      localStorage.setItem('l1p_v3', JSON.stringify({ ...state, running: false, paused: false, dead: false, highWave: Math.max(state.highWave || 1, state.level) }));
-      let board = JSON.parse(localStorage.getItem('l1p_board') || '[]');
-      board.push({ name: state.name, country: state.country, wave: state.level, kills: state.kills, t: Date.now() });
-      board.sort((a, b) => b.wave - a.wave || b.kills - a.kills); board = board.slice(0, 15);
-      localStorage.setItem('l1p_board', JSON.stringify(board));
-    } catch (e) {}
-  }
-  function addFloat(x, y, text, color = '#f5d773', size = 16) { floatingTexts.push({ x, y, text, color, life: 0.9, size }); }
-  function spawnParticle(x, y, color, life = 0.25, r = 4) { particles.push({ x, y, vx: rand(-40,40), vy: rand(-40,40), life, max: life, color, r }); }
+      const skins = [
+        { name: 'Blue Recruit', color: '#8aabe8', cost: 0 },
+        { name: 'Golden Suit', color: '#ffd166', cost: 300 },
+        { name: 'Cyber Samurai', color: '#ff5d73', cost: 600 },
+        { name: 'Zombie Clown', color: '#05eA7a', cost: 1000 }
+      ];
 
-  const zone = $('joystickZone'), knob = $('joystickKnob');
-  let touchId = null;
-  function updateStick(e) {
-    const rect = zone.getBoundingClientRect(), cx = rect.left + rect.width/2, cy = rect.top + rect.height/2;
-    let dx = e.clientX - cx, dy = e.clientY - cy; const maxD = 48, d = Math.hypot(dx, dy);
-    if (d > maxD) { dx = dx/d*maxD; dy = dy/d*maxD; }
-    knob.style.transform = `translate(${dx}px,${dy}px)`; stick.x = dx/maxD; stick.y = dy/maxD;
-  }
-  function endStick() { touchId = null; stick.x = 0; stick.y = 0; knob.style.transform = 'translate(0,0)'; }
-  zone.addEventListener('pointerdown', e => { e.preventDefault(); touchId = e.pointerId; zone.setPointerCapture(touchId); updateStick(e); });
-  zone.addEventListener('pointermove', e => { if (e.pointerId === touchId) updateStick(e); });
-  zone.addEventListener('pointerup', e => { if (e.pointerId === touchId) endStick(); });
-  zone.addEventListener('pointercancel', e => { if (e.pointerId === touchId) endStick(); });
-  zone.addEventListener('lostpointercapture', endStick);
+      let state = {
+        running: false, paused: false, dead: false, level: 1, hp: 100, maxHp: 100, xp: 0, coins: 50, kills: 0,
+        weapon: 0, unlocked: [0], skin: 0, skinUnlocked: [0], pet: 0, name: 'missax', country: '🇹🇭 Thailand',
+        ammo: 12, maxAmmo: 12, reloadTimer: 0, bestWave: 1, petUnlocked: [0]
+      };
 
-  const attackBtn = $('attackBtn'), reloadBtn = $('reloadBtn');
-  function pressAttack(e) { e.preventDefault(); attackHeld = true; attackReq = true; attackBtn.classList.add('pressed'); attackBtn.setPointerCapture?.(e.pointerId); ensureAudio(); }
-  function releaseAttack() { attackHeld = false; attackReq = false; attackBtn.classList.remove('pressed'); }
-  attackBtn.addEventListener('pointerdown', pressAttack);
-  attackBtn.addEventListener('pointerup', releaseAttack);
-  attackBtn.addEventListener('pointercancel', releaseAttack);
-  attackBtn.addEventListener('pointerleave', releaseAttack);
-  attackBtn.addEventListener('lostpointercapture', releaseAttack);
-  reloadBtn.addEventListener('pointerdown', e => { e.preventDefault(); startReload(); });
-
-  function getWep() { return weapons[state.weapon] || weapons[0]; }
-  function startReload() {
-    const wep = getWep();
-    if (reloading || ammo >= wep.mag || wep.kind === 'melee') return;
-    reloading = true; reloadTimer = wep.reload; sfxReload();
-    addFloat(player.x, player.y - 40, 'RELOADING...', '#5dade2', 14);
-  }
-  function fire() {
-    const wep = getWep();
-    if (reloading || fireCD > 0) return;
-    if (wep.kind !== 'melee' && ammo <= 0) { startReload(); return; }
-    fireCD = wep.fireRate; player.recoil = 1; sfxShoot();
-    let aimX = Math.cos(player.angle), aimY = Math.sin(player.angle);
-    let nearest = null, minD = wep.range;
-    zombies.forEach(z => { const d = dist(player.x, player.y, z.x, z.y); if (d < minD) { minD = d; nearest = z; } });
-    if (nearest) { const a = Math.atan2(nearest.y - player.y, nearest.x - player.x); aimX = Math.cos(a); aimY = Math.sin(a); player.angle = a; }
-    if (wep.kind === 'melee') {
-      zombies.forEach(z => {
-        const d = dist(player.x, player.y, z.x, z.y);
-        if (d < wep.range + z.r) {
-          const ang = Math.atan2(z.y - player.y, z.x - player.x);
-          let diff = Math.abs(ang - player.angle); if (diff > Math.PI) diff = 2*Math.PI - diff;
-          if (diff < 1.1) { hitZombie(z, wep.dmg, wep); for (let i=0;i<5;i++) spawnParticle(z.x,z.y,'#ecf0f1',0.3,5); }
+      try {
+        let saved = JSON.parse(localStorage.getItem('last1percent_save_v2') || 'null');
+        if (saved && typeof saved === 'object') {
+          state = { ...state, ...saved };
         }
-      });
-      shake = 0.25; return;
-    }
-    ammo--;
-    const muzzleX = player.x + aimX * 28, muzzleY = player.y + aimY * 28;
-    for (let i = 0; i < wep.pellets; i++) {
-      const spread = (Math.random() - 0.5) * wep.spread * 2;
-      const a = Math.atan2(aimY, aimX) + spread;
-      bullets.push({ x: muzzleX, y: muzzleY, vx: Math.cos(a)*wep.bulletSpeed, vy: Math.sin(a)*wep.bulletSpeed, life: wep.range/wep.bulletSpeed, dmg: wep.dmg, color: wep.color, special: wep.special||null, pierce: wep.special==='pierce'?3:0, r: wep.pellets>1?3:4 });
-    }
-    spawnParticle(muzzleX, muzzleY, wep.color, 0.12, 6);
-  }
-  function hitZombie(z, dmg, wep) {
-    let finalDmg = dmg;
-    if (state.pet === 4 && Math.random() < 0.18) { finalDmg *= 1.8; addFloat(z.x, z.y-20, 'CRIT!', '#e74c3c', 15); }
-    z.hp -= finalDmg; sfxHit();
-    addFloat(z.x, z.y-12, '-'+Math.round(finalDmg), '#ffcf5a', 14);
-    spawnParticle(z.x, z.y, '#e74c3c', 0.2, 5);
-    if (wep && wep.special === 'slow') z.slow = 1.5;
-    if (wep && wep.special === 'explode') {
-      zombies.forEach(oz => { if (oz !== z && dist(z.x,z.y,oz.x,oz.y) < 70) { oz.hp -= dmg*0.45; spawnParticle(oz.x,oz.y,'#f39c12',0.25,6); } });
-      for (let i=0;i<10;i++) spawnParticle(z.x,z.y,'#f39c12',0.35,7); shake = 0.2;
-    }
-    if (z.hp <= 0) killZombie(z);
-  }
-  function killZombie(z) {
-    const coinMul = state.pet === 1 ? 1.6 : 1;
-    const coins = Math.round((z.boss ? 45 : 10 + state.level * 1.5) * coinMul);
-    state.coins += coins; state.kills++; state.xp += z.boss ? 45 : 18;
-    addFloat(z.x, z.y, '+'+coins+'💰', '#f5d773', 15);
-    for (let i=0;i<8;i++) spawnParticle(z.x,z.y, z.boss?'#9b59b6':'#476f48', 0.4, 6);
-    if (Math.random() < (z.boss ? 0.7 : 0.12)) {
-      const types = ['heal','ammo','speed','damage'];
-      powerups.push({ x: z.x, y: z.y, type: types[Math.floor(Math.random()*types.length)], life: 12 });
-    }
-    if (state.xp >= 100) {
-      state.level++; state.xp = 0; state.maxHp += 12; state.hp = Math.min(state.hp+25, state.maxHp);
-      sfxLevel(); showWaveBanner('WAVE '+state.level); saveGame(); bossSpawned = false;
-    }
-    zombies = zombies.filter(zz => zz !== z);
-  }
-  function showWaveBanner(txt) { const el = $('waveBanner'); el.textContent = txt; el.classList.add('show'); waveAnnounce = 1.8; }
-  function spawnZombie(isBoss = false) {
-    const angle = Math.random() * Math.PI * 2, d = Math.max(w,h)*0.55 + 80;
-    const baseHp = 35 + state.level * 12;
-    zombies.push({ x: player.x+Math.cos(angle)*d, y: player.y+Math.sin(angle)*d, hp: isBoss?baseHp*6:baseHp, maxHp: isBoss?baseHp*6:baseHp, speed: isBoss?55:rand(48,78)+state.level*1.2, r: isBoss?26:13, boss: isBoss, slow: 0 });
-  }
-  function startNewGame() {
-    state.name = $('playerNameInput').value.trim() || 'Survivor'; state.country = $('countrySelect').value;
-    state.running = true; state.paused = false; state.dead = false; state.level = 1; state.xp = 0; state.kills = 0;
-    state.maxHp = state.pet === 3 ? 130 : 100; state.hp = state.maxHp;
-    player.x = 0; player.y = 0; player.angle = 0;
-    bullets = []; zombies = []; particles = []; powerups = []; floatingTexts = [];
-    ammo = getWep().mag; reloading = false; fireCD = 0; bossSpawned = false;
-    ui.menu.classList.add('hidden'); ui.gameOver.classList.add('hidden'); ui.pause.classList.add('hidden');
-    showWaveBanner('WAVE 1'); updateUI(); ensureAudio();
-  }
-  function continueGame() { state.running = true; state.paused = false; state.dead = false; ui.menu.classList.add('hidden'); ui.gameOver.classList.add('hidden'); ammo = getWep().mag; updateUI(); }
-  function die() {
-    state.dead = true; state.running = false; sfxDie(); saveGame();
-    $('goStats').textContent = `Wave ${state.level}  •  ${state.kills} kills  •  ${state.coins} coins`;
-    setTimeout(() => ui.gameOver.classList.remove('hidden'), 600);
-  }
-  function updateUI() {
-    $('goldText').textContent = state.coins; $('waveLabel').textContent = state.level;
-    $('hpText').textContent = Math.ceil(state.hp); $('hpFill').style.width = Math.max(0, state.hp/state.maxHp*100)+'%';
-    $('xpFill').style.width = Math.min(100, state.xp)+'%';
-    const wep = getWep();
-    if (wep.kind === 'melee') { $('ammoText').textContent = 'MELEE'; $('ammoFill').style.width = '100%'; reloadBtn.classList.remove('show'); }
-    else { $('ammoText').textContent = ammo+'/'+wep.mag; $('ammoFill').style.width = (ammo/wep.mag*100)+'%'; if (ammo===0 && !reloading) reloadBtn.classList.add('show'); else reloadBtn.classList.remove('show'); }
-    let petHtml = ''; pets.forEach((p,i) => { const active = state.pet===i?'active':''; const locked = i>0 && state.coins<p.cost && state.pet!==i?'locked':''; petHtml += `<div class="card ${active} ${locked}" data-pet="${i}"><b>${p.name}</b><br><small>${p.desc}${p.cost?' • '+p.cost+'💰':''}</small></div>`; });
-    $('petList').innerHTML = petHtml;
-    $('petList').querySelectorAll('[data-pet]').forEach(el => { el.onclick = () => { const i = +el.dataset.pet; if (i===0 || state.pet===i) { state.pet=i; updateUI(); saveGame(); return; } if (state.coins >= pets[i].cost) { state.coins -= pets[i].cost; state.pet = i; if (i===3) { state.maxHp=130; state.hp=Math.min(state.hp+30,130); } updateUI(); saveGame(); } else addFloat(player.x,player.y-30,'Not enough coins!','#e74c3c'); }; });
-    let skinHtml = ''; skins.forEach((s,i) => { const unlocked = state.skinUnlocked.includes(i); const active = state.skin===i?'active':''; skinHtml += `<div class="card ${active}" data-skin="${i}"><b>${s.name}</b><br><small>${unlocked?'Owned':s.cost+'💰'}</small></div>`; });
-    $('skinList').innerHTML = skinHtml;
-    $('skinList').querySelectorAll('[data-skin]').forEach(el => { el.onclick = () => { const i = +el.dataset.skin; if (state.skinUnlocked.includes(i)) { state.skin=i; updateUI(); saveGame(); return; } if (state.coins >= skins[i].cost) { state.coins -= skins[i].cost; state.skinUnlocked.push(i); state.skin=i; updateUI(); saveGame(); } else addFloat(player.x,player.y-30,'Not enough coins!','#e74c3c'); }; });
-    let wepHtml = ''; weapons.forEach((wep,i) => { const unlocked = state.unlocked.includes(i); const active = state.weapon===i?'active':''; wepHtml += `<div class="card ${active}" data-wep="${i}"><b>${wep.name}</b><br><small>${unlocked?'Equipped':wep.cost+'💰'}</small></div>`; });
-    $('weaponList').innerHTML = wepHtml;
-    $('weaponList').querySelectorAll('[data-wep]').forEach(el => { el.onclick = () => { const i = +el.dataset.wep; if (state.unlocked.includes(i)) { state.weapon=i; ammo=weapons[i].mag; reloading=false; updateUI(); saveGame(); return; } if (state.coins >= weapons[i].cost) { state.coins -= weapons[i].cost; state.unlocked.push(i); state.weapon=i; ammo=weapons[i].mag; reloading=false; updateUI(); saveGame(); } else addFloat(player.x,player.y-30,'Not enough coins!','#e74c3c'); }; });
-  }
-  function refreshLeaderboard() {
-    let board = []; try { board = JSON.parse(localStorage.getItem('l1p_board')||'[]'); } catch(e){}
-    const global = [{name:'Zeus',country:'🇮🇳',wave:48,kills:920},{name:'Kancil',country:'🇲🇲',wave:41,kills:780},{name:'missax',country:'🇹🇭',wave:37,kills:650}];
-    const merged = [...global,...board].sort((a,b)=>b.wave-a.wave||b.kills-a.kills).slice(0,10);
-    let html = ''; merged.forEach((r,i) => { const medal = i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1)+'.'; const you = r.name===state.name?' (You)':''; html += `<div style="background:#1a2430;padding:8px;border-radius:7px;display:flex;justify-content:space-between;"><span>${medal} ${r.name} ${r.country||''}${you}</span><b>Wave ${r.wave}</b></div>`; });
-    if (!html) html = '<div style="text-align:center;color:#8a9bb0;">No scores yet</div>';
-    $('rankList').innerHTML = html;
-  }
-  function refreshRooms() {
-    const rooms = [{name:'Alpha Squad',host:'Zeus',flag:'🇮🇳',players:3},{name:'Wasteland',host:'missax',flag:'🇹🇭',players:2},{name:state.name+"'s Room",host:state.name,flag:state.country.split(' ')[0],players:1}];
-    $('roomsContainer').innerHTML = rooms.map(r => `<div class="card" style="text-align:left;padding:10px;"><b>${r.name}</b><br><small>Host: ${r.host} ${r.flag} • ${r.players}/4</small></div>`).join('');
-  }
-  $('startBtn').onclick = startNewGame; $('continueBtn').onclick = continueGame; $('retryBtn').onclick = startNewGame;
-  $('menuFromGoBtn').onclick = () => { ui.gameOver.classList.add('hidden'); ui.menu.classList.remove('hidden'); };
-  $('pauseBtn').onclick = () => { if (!state.running||state.dead) return; state.paused=!state.paused; ui.pause.classList.toggle('hidden',!state.paused); };
-  $('resumeBtn').onclick = () => { state.paused=false; ui.pause.classList.add('hidden'); };
-  $('saveBtn').onclick = () => { saveGame(); addFloat(player.x,player.y-40,'SAVED!','#2ecc71'); };
-  $('quitBtn').onclick = () => { state.running=false; state.paused=false; ui.pause.classList.add('hidden'); ui.menu.classList.remove('hidden'); };
-  $('bagMenuBtn').onclick = () => { ui.bag.classList.toggle('hidden'); updateUI(); };
-  $('profileBtn').onclick = () => { ui.profile.classList.toggle('hidden'); updateUI(); };
-  $('menuMultiBtn').onclick = () => { ui.multi.classList.remove('hidden'); refreshRooms(); };
-  $('menuRankBtn').onclick = () => { ui.rank.classList.remove('hidden'); refreshLeaderboard(); };
-  $('closeBagBtn').onclick = () => ui.bag.classList.add('hidden');
-  $('closeProfileBtn').onclick = () => ui.profile.classList.add('hidden');
-  $('closeMultiBtn').onclick = () => ui.multi.classList.add('hidden');
-  $('closeRankBtn').onclick = () => ui.rank.classList.add('hidden');
-  $('createRoomBtn').onclick = () => { refreshRooms(); };
-  $('refreshRoomsBtn').onclick = () => refreshRooms();
-  window.addEventListener('keydown', e => { keys[e.key.toLowerCase()]=true; if (e.key===' '||e.key==='f'){attackHeld=true;attackReq=true;} if (e.key.toLowerCase()==='r') startReload(); });
-  window.addEventListener('keyup', e => { keys[e.key.toLowerCase()]=false; if (e.key===' '||e.key==='f'){attackHeld=false;attackReq=false;} });
+      } catch (e) {
+        localStorage.removeItem('last1percent_save_v2');
+      }
 
-  let last = performance.now();
-  function loop(now) {
-    let dt = Math.min((now-last)/1000, 0.05); last = now;
-    if (state.running && !state.paused && !state.dead) {
-      let mx = stick.x, my = stick.y;
-      if (keys['w']||keys['arrowup']) my-=1; if (keys['s']||keys['arrowdown']) my+=1;
-      if (keys['a']||keys['arrowleft']) mx-=1; if (keys['d']||keys['arrowright']) mx+=1;
-      const speedMul = state.pet===4 ? 1.22 : 1;
-      if (mx!==0||my!==0) { const len=Math.hypot(mx,my); player.x+=(mx/len)*player.speed*speedMul*dt; player.y+=(my/len)*player.speed*speedMul*dt; player.angle=Math.atan2(my,mx); }
-      let nearest=null, minD=500;
-      zombies.forEach(z => { const d=dist(player.x,player.y,z.x,z.y); if(d<minD){minD=d;nearest=z;} });
-      if (nearest && mx===0&&my===0) player.angle = Math.atan2(nearest.y-player.y, nearest.x-player.x);
-      fireCD -= dt;
-      if ((attackHeld||attackReq) && fireCD<=0) { fire(); attackReq=false; }
-      player.recoil = Math.max(0, player.recoil - dt*6);
-      if (reloading) { reloadTimer-=dt; if (reloadTimer<=0) { reloading=false; ammo=getWep().mag; sfxReload(); } }
-      const maxZ = 14 + state.level*2.5;
-      if (zombies.length < maxZ && Math.random() < 0.035+state.level*0.002) spawnZombie(false);
-      if (state.level>=3 && state.level%3===0 && !bossSpawned && zombies.filter(z=>z.boss).length===0) { spawnZombie(true); bossSpawned=true; showWaveBanner('BOSS INCOMING!'); }
-      zombies.forEach(z => {
-        if (z.slow>0) z.slow-=dt;
-        const spd = z.speed*(z.slow>0?0.45:1);
-        const a = Math.atan2(player.y-z.y, player.x-z.x);
-        z.x += Math.cos(a)*spd*dt; z.y += Math.sin(a)*spd*dt;
-        if (dist(player.x,player.y,z.x,z.y) < z.r+14) { state.hp -= (z.boss?28:16)*dt; if (state.hp<=0){state.hp=0;die();} }
+      state.running = false;
+      state.paused = false;
+      state.dead = false;
+      state.coins = Math.max(0, Number(state.coins) || 0);
+      state.level = Math.max(1, Number(state.level) || 1);
+      state.xp = Math.max(0, Number(state.xp) || 0);
+      state.unlocked = Array.isArray(state.unlocked) ? state.unlocked : [0];
+      state.skinUnlocked = Array.isArray(state.skinUnlocked) ? state.skinUnlocked : [0];
+      state.petUnlocked = Array.isArray(state.petUnlocked) ? state.petUnlocked : [0];
+      state.weapon = Math.max(0, Math.min(weapons.length - 1, Number(state.weapon) || 0));
+      state.skin = Math.max(0, Math.min(skins.length - 1, Number(state.skin) || 0));
+      state.pet = Math.max(0, Math.min(pets.length - 1, Number(state.pet) || 0));
+
+      let player = { x: 0, y: 0, speed: 185, attackCD: 0, recoil: 0, petCD: 0 };
+      let zombies = [];
+      let bullets = [];
+      let particles = [];
+      let floatingTexts = [];
+      let keys = {};
+      let stickVector = { x: 0, y: 0 };
+      let attackRequested = false, attackHeld = false;
+      let facing = { x: 1, y: 0 };
+      const attackButton = $('attackBtn');
+      attackButton.addEventListener('pointerdown', e => { e.preventDefault(); attackRequested = true; attackHeld = true; attackButton.setPointerCapture?.(e.pointerId); attackButton.classList.add('pressed'); });
+      const releaseAttack = () => { attackHeld = false; attackRequested = false; attackButton.classList.remove('pressed'); };
+      attackButton.addEventListener('pointerup', releaseAttack);
+      attackButton.addEventListener('pointercancel', releaseAttack);
+      attackButton.addEventListener('lostpointercapture', releaseAttack);
+
+      // Joystick Handling
+      const zone = $('joystickZone');
+      const knob = $('joystickKnob');
+      let touchId = null;
+
+      zone.addEventListener('pointerdown', e => {
+        touchId = e.pointerId;
+        zone.setPointerCapture(touchId);
+        updateStick(e);
       });
-      bullets.forEach(b => {
-        b.x+=b.vx*dt; b.y+=b.vy*dt; b.life-=dt;
-        zombies.forEach(z => { if (b.life<=0) return; if (dist(b.x,b.y,z.x,z.y)<z.r+b.r) { hitZombie(z,b.dmg,{special:b.special}); if(b.pierce>0)b.pierce--; else b.life=0; } });
+      zone.addEventListener('pointermove', e => {
+        if (e.pointerId === touchId) updateStick(e);
       });
-      bullets = bullets.filter(b => b.life>0);
-      petTimer -= dt;
-      if (state.pet===2 && petTimer<=0 && zombies.length) { petTimer=0.7; const z=zombies[Math.floor(Math.random()*zombies.length)]; z.hp-=22+state.level*2; spawnParticle(z.x,z.y,'#3498db',0.3,6); addFloat(z.x,z.y,'-DUCK','#3498db',12); if(z.hp<=0)killZombie(z); }
-      if (state.pet===3 && Math.random()<0.02) state.hp=Math.min(state.maxHp,state.hp+1);
-      powerups.forEach(p => { p.life-=dt; if (dist(player.x,player.y,p.x,p.y)<28) { sfxPickup(); if(p.type==='heal'){state.hp=Math.min(state.maxHp,state.hp+35);addFloat(p.x,p.y,'+HP','#2ecc71');} if(p.type==='ammo'){ammo=getWep().mag;addFloat(p.x,p.y,'+AMMO','#3498db');} if(p.type==='speed'){player.speed=260;setTimeout(()=>player.speed=195,5000);addFloat(p.x,p.y,'SPEED!','#f1c40f');} if(p.type==='damage')addFloat(p.x,p.y,'DMG UP','#e74c3c'); p.life=0; } });
-      powerups = powerups.filter(p => p.life>0);
-      particles.forEach(p => { p.life-=dt; p.x+=p.vx*dt; p.y+=p.vy*dt; }); particles = particles.filter(p => p.life>0);
-      floatingTexts.forEach(f => { f.life-=dt; f.y-=30*dt; }); floatingTexts = floatingTexts.filter(f => f.life>0);
-      if (waveAnnounce>0) { waveAnnounce-=dt; if(waveAnnounce<=0)$('waveBanner').classList.remove('show'); }
-      shake = Math.max(0, shake-dt);
-    }
-    const shx = shake>0?rand(-4,4)*shake:0, shy = shake>0?rand(-4,4)*shake:0;
-    ctx.fillStyle = '#0a0e14'; ctx.fillRect(0,0,w,h);
-    ctx.save(); ctx.translate(w/2-player.x+shx, h/2-player.y+shy);
-    ctx.strokeStyle = '#141c26'; ctx.lineWidth = 1.5;
-    const gs=70, sx=Math.floor((player.x-w)/gs)*gs, ex=Math.floor((player.x+w)/gs)*gs, sy=Math.floor((player.y-h)/gs)*gs, ey=Math.floor((player.y+h)/gs)*gs;
-    for (let x=sx;x<ex;x+=gs){ctx.beginPath();ctx.moveTo(x,sy);ctx.lineTo(x,ey);ctx.stroke();}
-    for (let y=sy;y<ey;y+=gs){ctx.beginPath();ctx.moveTo(sx,y);ctx.lineTo(ex,y);ctx.stroke();}
-    powerups.forEach(p => { const colors={heal:'#2ecc71',ammo:'#3498db',speed:'#f1c40f',damage:'#e74c3c'}; ctx.fillStyle=colors[p.type]||'#fff'; ctx.beginPath();ctx.arc(p.x,p.y,10+Math.sin(performance.now()/150)*2,0,Math.PI*2);ctx.fill(); ctx.fillStyle='#fff';ctx.font='bold 11px system-ui';ctx.textAlign='center';ctx.fillText(p.type[0].toUpperCase(),p.x,p.y+4); });
-    zombies.forEach(z => {
-      ctx.save(); ctx.translate(z.x,z.y);
-      ctx.fillStyle='rgba(0,0,0,0.35)'; ctx.beginPath();ctx.ellipse(0,z.r*0.6,z.r*1.1,z.r*0.55,0,0,Math.PI*2);ctx.fill();
-      if (z.boss) { ctx.fillStyle='#5b2c6f'; ctx.beginPath();ctx.roundRect(-z.r*0.8,-z.r*0.7,z.r*1.6,z.r*1.6,8);ctx.fill(); ctx.fillStyle='#9b59b6';ctx.beginPath();ctx.arc(0,-z.r*0.55,z.r*0.65,0,Math.PI*2);ctx.fill(); ctx.fillStyle='#f1c40f';ctx.fillRect(-6,-z.r*0.75,4,4);ctx.fillRect(2,-z.r*0.75,4,4); }
-      else { ctx.fillStyle='#3d5c40';ctx.beginPath();ctx.roundRect(-z.r*0.65,-z.r*0.5,z.r*1.3,z.r*1.5,5);ctx.fill(); ctx.fillStyle='#6b8f5e';ctx.beginPath();ctx.arc(0,-z.r*0.55,z.r*0.62,0,Math.PI*2);ctx.fill(); ctx.fillStyle='#d5f5a3';ctx.fillRect(-4,-z.r*0.7,3,3);ctx.fillRect(1,-z.r*0.7,3,3); }
-      ctx.fillStyle='#1a1a1a';ctx.fillRect(-z.r,-z.r-10,z.r*2,4); ctx.fillStyle=z.boss?'#9b59b6':'#e74c3c';ctx.fillRect(-z.r,-z.r-10,z.r*2*Math.max(0,z.hp/z.maxHp),4);
-      ctx.restore();
-    });
-    bullets.forEach(b => { ctx.fillStyle=b.color; ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,Math.PI*2);ctx.fill(); ctx.strokeStyle=b.color+'88';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(b.x,b.y);ctx.lineTo(b.x-b.vx*0.03,b.y-b.vy*0.03);ctx.stroke(); });
-    particles.forEach(p => { ctx.globalAlpha=p.life/p.max; ctx.fillStyle=p.color; ctx.beginPath();ctx.arc(p.x,p.y,p.r*(p.life/p.max),0,Math.PI*2);ctx.fill(); ctx.globalAlpha=1; });
-    ctx.save(); ctx.translate(player.x,player.y); ctx.rotate(player.angle);
-    ctx.fillStyle='rgba(0,0,0,0.45)'; ctx.beginPath();ctx.ellipse(0,8,20,14,0,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle='#1a2330'; ctx.beginPath();ctx.roundRect(-11,6,8,11,2);ctx.fill(); ctx.beginPath();ctx.roundRect(3,6,8,11,2);ctx.fill();
-    ctx.fillStyle='#2c3e50'; ctx.fillRect(-10,2,7,8);ctx.fillRect(3,2,7,8);
-    ctx.fillStyle='#1e3a32';ctx.strokeStyle='#5a8a78';ctx.lineWidth=1.5; ctx.beginPath();ctx.roundRect(-16,-10,9,18,3);ctx.fill();ctx.stroke();
-    ctx.fillStyle='#c99570'; ctx.beginPath();ctx.roundRect(4,-12,16,6,2);ctx.fill(); ctx.beginPath();ctx.roundRect(4,5,14,6,2);ctx.fill();
-    const skinCol = skins[state.skin]?.color||'#6a9bd8';
-    ctx.fillStyle=skinCol;ctx.strokeStyle='#dfe6e9';ctx.lineWidth=1.8; ctx.beginPath();ctx.roundRect(-10,-13,21,25,6);ctx.fill();ctx.stroke();
-    ctx.fillStyle='#1c2e3d'; ctx.beginPath();ctx.roundRect(-7,-9,14,16,3);ctx.fill(); ctx.fillStyle='#f5d773';ctx.fillRect(-2,-7,3,12);
-    ctx.fillStyle='#1a2530';ctx.strokeStyle='#7f8c9a';ctx.lineWidth=1.5; ctx.beginPath();ctx.arc(1,-13,9,0,Math.PI*2);ctx.fill();ctx.stroke();
-    ctx.fillStyle='#5dade2'; ctx.beginPath();ctx.roundRect(3,-16,7,4,1.5);ctx.fill();
-    const wep=getWep(), recoilOff=player.recoil*4;
-    if (wep.kind==='melee') { ctx.fillStyle='#bdc3c7'; ctx.save(); ctx.translate(18-recoilOff,0); ctx.rotate(-0.3+player.recoil*0.8); ctx.fillRect(0,-3,28,5); ctx.fillStyle='#7f8c8d';ctx.fillRect(22,-5,8,9); ctx.restore(); }
-    else { ctx.fillStyle='#1a252f';ctx.strokeStyle='#5d6d7e';ctx.lineWidth=1.2; ctx.beginPath();ctx.roundRect(12-recoilOff,-4,24,6,2);ctx.fill();ctx.stroke(); ctx.fillStyle='#85929e';ctx.fillRect(28-recoilOff,-2,12,2.5); ctx.fillStyle='#2c3e50';ctx.fillRect(16,1,5,6); }
-    ctx.restore(); ctx.restore();
-    floatingTexts.forEach(f => { const sx=w/2+(f.x-player.x), sy=h/2+(f.y-player.y); ctx.globalAlpha=Math.min(1,f.life*1.5); ctx.fillStyle=f.color; ctx.font=`bold ${f.size||15}px system-ui`; ctx.textAlign='center'; ctx.fillText(f.text,sx,sy); ctx.globalAlpha=1; });
-    const showCombat = state.running && !state.paused && !state.dead;
-    attackBtn.style.display = showCombat ? 'flex' : 'none'; zone.style.display = showCombat ? 'block' : 'none';
-    if (!showCombat) { attackHeld=false; attackReq=false; }
-    updateUI(); requestAnimationFrame(loop);
-  }
-  requestAnimationFrame(loop);
-})();
-</script>
+      function releaseStick(e) {
+        if (e && touchId !== null && e.pointerId !== undefined && e.pointerId !== touchId) return;
+        touchId = null;
+        stickVector = { x: 0, y: 0 };
+        knob.style.transform = 'translate(0px, 0px)';
+      }
+      zone.addEventListener('pointerup', releaseStick);
+      zone.addEventListener('pointercancel', releaseStick);
+      zone.addEventListener('lostpointercapture', releaseStick);
+      window.addEventListener('blur', () => {
+        keys = {};
+        releaseStick();
+        attackHeld = false;
+        attackRequested = false;
+        attackButton.classList.remove('pressed');
+      });
+
+      function updateStick(e) {
+        const rect = zone.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+        let dx = e.clientX - centerX;
+        let dy = e.clientY - centerY;
+        let dist = Math.hypot(dx, dy);
+        let maxDist = 45;
+        if (dist > maxDist) {
+          dx = (dx / dist) * maxDist;
+          dy = (dy / dist) * maxDist;
+        }
+        knob.style.transform = `translate(${dx}px, ${dy}px)`;
+        stickVector = { x: dx / maxDist, y: dy / maxDist };
+      }
+
+      function rand(a, b) { return a + Math.random() * (b - a); }
+      function dist(x1, y1, x2, y2) { return Math.hypot(x2 - x1, y2 - y1); }
+
+      function saveGame() {
+        try {
+          localStorage.setItem('last1percent_save_v2', JSON.stringify({
+            ...state, running: false, paused: false, dead: false
+          }));
+        } catch (e) {}
+      }
+
+      function addNotification(msg) {
+        floatingTexts.push({ x: w / 2, y: h / 3, text: msg, life: 1.5, color: '#f5d773' });
+      }
+
+      function updateUI() {
+        $('goldText').textContent = state.coins;
+        $('waveLabel').textContent = state.level;
+        $('waveText').textContent = Math.floor(state.xp) + '%';
+        $('ammoText').textContent = state.reloadTimer > 0 ? 'RELOADING…' : `${state.ammo}/${state.maxAmmo}`;
+        let hpPct = Math.max(0, (state.hp / state.maxHp) * 100);
+        $('hpFill').style.width = hpPct + '%';
+
+        // Pets HTML
+        let petHtml = '';
+        pets.forEach((p, i) => {
+          let active = state.pet === i ? 'active' : '';
+          const owned = state.petUnlocked.includes(i) || i === 0;
+          petHtml += `<div class="card ${active}" onclick="selectPet(${i})"><b>${p.name}</b><br><small>${owned ? p.desc : p.cost + ' 💰 · ' + p.desc}</small></div>`;
+        });
+        if ($('petList')) $('petList').innerHTML = petHtml;
+
+        // Skins HTML
+        let skinHtml = '';
+        skins.forEach((s, i) => {
+          let active = state.skin === i ? 'active' : '';
+          skinHtml += `<div class="card ${active}" onclick="selectSkin(${i})"><b>${s.name}</b><br><small>${s.cost} 💰</small></div>`;
+        });
+        if ($('skinList')) $('skinList').innerHTML = skinHtml;
+
+        // Weapons HTML
+        let wepHtml = '';
+        weapons.forEach((wep, i) => {
+          let unlocked = state.unlocked.includes(i);
+          let active = state.weapon === i ? 'active' : '';
+          wepHtml += `<div class="card ${active}" onclick="selectWeapon(${i})"><b>${wep.name}</b><br><small>${unlocked ? 'Equipped' : wep.cost + ' 💰'}</small></div>`;
+        });
+        if ($('weaponList')) $('weaponList').innerHTML = wepHtml;
+        
+        if ($('myRankName')) $('myRankName').textContent = `4. 👤 ${state.name} (${state.country.split(' ')[0]})`;
+        if ($('rankYouScore')) $('rankYouScore').textContent = 'Wave ' + Math.max(state.level, state.bestWave || 1);
+      }
+
+      window.selectPet = i => {
+        if (!Number.isInteger(i) || !pets[i]) return;
+        if (i > 0 && !state.petUnlocked?.includes(i)) {
+          state.petUnlocked = Array.isArray(state.petUnlocked) ? state.petUnlocked : [0];
+          if (state.coins < pets[i].cost) { addNotification('Not enough coins!'); return; }
+          state.coins -= pets[i].cost;
+          state.petUnlocked.push(i);
+        }
+        state.pet = i;
+        state.maxHp = i === 3 ? 125 : 100 + Math.max(0, state.level - 1) * 15;
+        state.hp = Math.min(state.maxHp, state.hp + (i === 3 ? 25 : 0));
+        updateUI(); saveGame();
+      };
+      window.selectSkin = i => {
+        if (state.skinUnlocked.includes(i) || state.coins >= skins[i].cost) {
+          if (!state.skinUnlocked.includes(i)) {
+            state.coins -= skins[i].cost;
+            state.skinUnlocked.push(i);
+          }
+          state.skin = i;
+          updateUI();
+          saveGame();
+        } else { addNotification('Not enough coins!'); }
+      };
+      window.selectWeapon = i => {
+        if (state.unlocked.includes(i) || state.coins >= weapons[i].cost) {
+          if (!state.unlocked.includes(i)) {
+            state.coins -= weapons[i].cost;
+            state.unlocked.push(i);
+          }
+          state.weapon = i;
+          updateUI();
+          saveGame();
+        } else { addNotification('Not enough coins!'); }
+      };
+
+      function awardKill(zombie) {
+        if (!zombies.includes(zombie)) return;
+        const coinGain = state.pet === 1 ? 18 : 12;
+        state.coins += coinGain;
+        state.kills += 1;
+        state.xp += 22;
+        zombies = zombies.filter(z => z !== zombie);
+        if (state.xp >= 100) {
+          state.level += Math.floor(state.xp / 100);
+          state.xp = state.xp % 100;
+          state.maxHp = (state.pet === 3 ? 125 : 100) + Math.max(0, state.level - 1) * 15;
+          state.hp = state.maxHp;
+          addNotification('LEVEL UP! Wave ' + state.level);
+          saveGame();
+        }
+        state.bestWave = Math.max(state.bestWave || 1, state.level);
+      }
+
+      function spawnZombie() {
+        let angle = Math.random() * Math.PI * 2;
+        let d = Math.max(w, h) / 2 + 60;
+        zombies.push({
+          x: player.x + Math.cos(angle) * d,
+          y: player.y + Math.sin(angle) * d,
+          hp: 40 + state.level * 10,
+          maxHp: 40 + state.level * 10,
+          speed: rand(50, 80),
+          r: 13
+        });
+      }
+
+      function startNewGame() {
+        state.name = $('playerNameInput').value || 'Survivor';
+        state.country = $('countrySelect').value;
+        state.running = true;
+        state.paused = false;
+        state.dead = false;
+        state.maxHp = state.pet === 3 ? 125 : 100;
+        state.hp = state.maxHp;
+        state.ammo = state.maxAmmo = 12;
+        state.reloadTimer = 0;
+        player.x = 0; player.y = 0; player.attackCD = 0; player.recoil = 0; player.petCD = 0;
+        zombies = []; bullets = []; particles = []; floatingTexts = [];
+        ui.menu.classList.add('hidden');
+        ui.pause.classList.add('hidden');
+        ui.bag.classList.add('hidden');
+        ui.profile.classList.add('hidden');
+        ui.multi.classList.add('hidden');
+        ui.rank.classList.add('hidden');
+        updateUI();
+      }
+
+      // UI Event Bindings
+      $('startBtn').onclick = startNewGame;
+      $('continueBtn').onclick = () => {
+        state.name = $('playerNameInput').value || state.name || 'Survivor';
+        state.country = $('countrySelect').value || state.country;
+        state.running = true;
+        state.paused = false;
+        state.dead = false;
+        state.maxHp = state.pet === 3 ? 125 : 100 + Math.max(0, state.level - 1) * 15;
+        state.hp = Math.max(1, Math.min(state.maxHp, Number(state.hp) || state.maxHp));
+        player.x = 0; player.y = 0;
+        zombies = []; bullets = []; particles = [];
+        ui.menu.classList.add('hidden');
+        ui.pause.classList.add('hidden');
+        updateUI();
+      };
+      $('pauseBtn').onclick = () => { state.paused = !state.paused; ui.pause.classList.toggle('hidden', !state.paused); };
+      $('resumeBtn').onclick = () => { state.paused = false; ui.pause.classList.add('hidden'); };
+      $('saveBtn').onclick = () => { saveGame(); addNotification("Game Saved Successfully!"); };
+      $('reloadBtn').onclick = () => {
+        if (state.running && !state.paused && !state.dead && state.reloadTimer <= 0 && state.ammo < state.maxAmmo) {
+          state.reloadTimer = 1.1;
+          attackHeld = false;
+          attackRequested = false;
+          addNotification('Reloading…');
+        }
+      };
+      $('restartBtn').onclick = () => startNewGame();
+      $('bagMenuBtn').onclick = () => { ui.bag.classList.toggle('hidden'); updateUI(); };
+      $('profileBtn').onclick = () => { ui.profile.classList.toggle('hidden'); updateUI(); };
+      $('menuMultiBtn').onclick = () => ui.multi.classList.remove('hidden');
+      $('menuRankBtn').onclick = () => { ui.rank.classList.remove('hidden'); updateUI(); };
+      $('closeBagBtn').onclick = () => ui.bag.classList.add('hidden');
+      $('closeProfileBtn').onclick = () => ui.profile.classList.add('hidden');
+      $('closeMultiBtn').onclick = () => ui.multi.classList.add('hidden');
+      $('closeRankBtn').onclick = () => ui.rank.classList.add('hidden');
+      
+      $('createRoomBtn').onclick = () => {
+        addNotification("Room Created! Waiting for players...");
+        $('roomsContainer').innerHTML += `<div class="card" style="text-align:left; padding:10px;"><b>${state.name}'s Room</b><br><small>Host: ${state.name} (${state.country.split(' ')[0]}) | Players: 1/4</small></div>`;
+      };
+      $('refreshRoomsBtn').onclick = () => addNotification("Rooms list refreshed!");
+
+      let lastTime = performance.now();
+      function loop(now) {
+        let dt = (now - lastTime) / 1000;
+        lastTime = now;
+        if (dt > 0.1) dt = 0.1;
+
+        if (state.running && !state.paused && !state.dead) {
+          // Movement
+          let mx = stickVector.x, my = stickVector.y;
+          if (keys['ArrowUp'] || keys['w']) my -= 1;
+          if (keys['ArrowDown'] || keys['s']) my += 1;
+          if (keys['ArrowLeft'] || keys['a']) mx -= 1;
+          if (keys['ArrowRight'] || keys['d']) mx += 1;
+
+          if (mx !== 0 || my !== 0) {
+            let len = Math.hypot(mx, my);
+            player.x += (mx / len) * player.speed * dt;
+            player.y += (my / len) * player.speed * dt;
+            facing = { x: mx / len, y: my / len };
+          }
+
+          // Spawn Zombies
+          if (zombies.length < 18 + state.level * 3 && Math.random() < 0.04) {
+            spawnZombie();
+          }
+
+          // Update Zombies
+          zombies.forEach(z => {
+            let angle = Math.atan2(player.y - z.y, player.x - z.x);
+            z.x += Math.cos(angle) * z.speed * dt;
+            z.y += Math.sin(angle) * z.speed * dt;
+
+            if (dist(player.x, player.y, z.x, z.y) < z.r + 12) {
+              state.hp -= 14 * dt;
+              if (state.hp <= 0) {
+                state.dead = true;
+                state.running = false;
+                attackHeld = false; attackRequested = false;
+                state.bestWave = Math.max(state.bestWave || 1, state.level);
+                saveGame();
+                addNotification("YOU DIED · Wave " + state.level);
+                setTimeout(() => { ui.menu.classList.remove('hidden'); ui.pause.classList.add('hidden'); }, 900);
+              }
+            }
+          });
+
+          // Shooting: auto-aim at the nearest zombie, with visible moving projectiles.
+          player.attackCD -= dt;
+          player.recoil = Math.max(0, player.recoil - dt * 5);
+          state.reloadTimer = Math.max(0, state.reloadTimer - dt);
+          if (state.reloadTimer === 0 && state.ammo <= 0 && player.attackCD <= 0) {
+            state.reloadTimer = 1.1;
+            addNotification('Reloading…');
+          }
+          if (state.reloadTimer <= 0 && (attackHeld || attackRequested) && player.attackCD <= 0) {
+            const curWep = weapons[state.weapon] || weapons[0];
+            const isMelee = curWep.kind === 'melee';
+            const cooldown = state.weapon === 3 ? 0.62 : (state.weapon === 4 ? 0.34 : (isMelee ? 0.42 : 0.24));
+            player.attackCD = cooldown;
+            attackRequested = false;
+            player.recoil = 1;
+            let nearest = null, minDist = curWep.range || 360;
+            zombies.forEach(z => {
+              const d = dist(player.x, player.y, z.x, z.y);
+              if (d < minDist) { minDist = d; nearest = z; }
+            });
+            if (nearest) {
+              const dx = nearest.x - player.x, dy = nearest.y - player.y;
+              const len = Math.max(1, Math.hypot(dx, dy));
+              facing = { x: dx / len, y: dy / len };
+              if (isMelee) {
+                nearest.hp -= curWep.damage;
+                particles.push({ x: nearest.x, y: nearest.y, life: 0.24, color: '#ffcf5a', size: 9 });
+                floatingTexts.push({ x: w / 2 + dx * 0.45, y: h / 2 + dy * 0.45, text: '-' + curWep.damage, life: 0.55, color: '#ffcf5a' });
+              } else {
+                const speed = state.weapon === 4 ? 470 : (state.weapon === 1 ? 260 : 560);
+                bullets.push({
+                  x: player.x + facing.x * 27, y: player.y + facing.y * 27,
+                  vx: facing.x * speed, vy: facing.y * speed,
+                  damage: curWep.damage, life: Math.max(0.35, minDist / speed + 0.2),
+                  color: state.weapon === 4 ? '#5de8ff' : (state.weapon === 1 ? '#ff9b42' : '#fff1a8'),
+                  radius: state.weapon === 3 ? 5 : 3,
+                  splash: state.weapon === 1 ? 42 : 0
+                });
+                particles.push({ x: player.x + facing.x * 34, y: player.y + facing.y * 34, life: 0.10, color: '#ffcf5a', size: 7 });
+                if (state.weapon !== 0) state.ammo = Math.max(0, state.ammo - 1);
+              }
+              if (nearest.hp <= 0) {
+                awardKill(nearest);
+              }
+            } else {
+              // Still show the shot if no target is close.
+              particles.push({ x: player.x + facing.x * 34, y: player.y + facing.y * 34, life: 0.10, color: '#ffcf5a', size: 7 });
+              if (!isMelee && state.weapon !== 0) state.ammo = Math.max(0, state.ammo - 1);
+            }
+          }
+
+          // Update projectile travel and collision.
+          bullets.forEach(b => {
+            const stepX = b.vx * dt, stepY = b.vy * dt;
+            b.x += stepX; b.y += stepY; b.life -= dt;
+            zombies.slice().forEach(z => {
+              if (dist(b.x, b.y, z.x, z.y) <= z.r + b.radius) {
+                z.hp -= b.damage;
+                particles.push({ x: z.x, y: z.y, life: 0.18, color: b.color, size: 6 });
+                floatingTexts.push({ x: w / 2 + (z.x-player.x)*0.45, y: h / 2 + (z.y-player.y)*0.45, text: '-' + b.damage, life: 0.5, color: '#ffcf5a' });
+                if (b.splash) {
+                  zombies.slice().forEach(other => {
+                    if (other !== z && dist(z.x, z.y, other.x, other.y) < b.splash) {
+                      other.hp -= Math.round(b.damage * 0.6);
+                      if (other.hp <= 0) awardKill(other);
+                    }
+                  });
+                }
+                if (z.hp <= 0) awardKill(z);
+                b.life = 0;
+              }
+            });
+          });
+          bullets = bullets.filter(b => b.life > 0);
+
+          // Battle Duck auto-attacks; Mini Robot increases maximum health.
+          player.petCD -= dt;
+          if (state.pet === 2 && player.petCD <= 0 && zombies.length) {
+            const target = zombies.reduce((a, z) =>
+              dist(player.x, player.y, z.x, z.y) < dist(player.x, player.y, a.x, a.y) ? z : a, zombies[0]);
+            target.hp -= 15;
+            particles.push({ x: target.x, y: target.y, life: 0.18, color: '#3498db', size: 6 });
+            player.petCD = 1.0;
+            if (target.hp <= 0) awardKill(target);
+          }
+        }
+
+        // Render Canvas Graphics
+        ctx.fillStyle = '#11151c';
+        ctx.fillRect(0, 0, w, h);
+
+        ctx.save();
+        ctx.translate(w / 2 - player.x, h / 2 - player.y);
+
+        // Grid Lines
+        ctx.strokeStyle = '#1c232e';
+        ctx.lineWidth = 2;
+        let gridSize = 80;
+        let startX = Math.floor((player.x - w) / gridSize) * gridSize;
+        let endX = Math.floor((player.x + w) / gridSize) * gridSize;
+        let startY = Math.floor((player.y - h) / gridSize) * gridSize;
+        let endY = Math.floor((player.y + h) / gridSize) * gridSize;
+
+        for (let x = startX; x < endX; x += gridSize) {
+          ctx.beginPath(); ctx.moveTo(x, startY); ctx.lineTo(x, endY); ctx.stroke();
+        }
+        for (let y = startY; y < endY; y += gridSize) {
+          ctx.beginPath(); ctx.moveTo(startX, y); ctx.lineTo(endX, y); ctx.stroke();
+        }
+
+        // Moving bullets / projectiles
+        bullets.forEach(b => {
+          ctx.save();
+          ctx.fillStyle = b.color;
+          ctx.shadowColor = b.color;
+          ctx.shadowBlur = 10;
+          ctx.beginPath();
+          ctx.arc(b.x, b.y, b.radius || 3, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        });
+
+        // Zombies
+        zombies.forEach(z => {
+          ctx.save(); ctx.translate(z.x, z.y);
+          ctx.fillStyle = 'rgba(0,0,0,.3)'; ctx.beginPath(); ctx.ellipse(0,5,z.r+3,z.r*.75,0,0,Math.PI*2); ctx.fill();
+          ctx.fillStyle = '#476f48'; ctx.beginPath(); ctx.roundRect(-z.r*.62,-z.r*.45,z.r*1.25,z.r*1.55,5); ctx.fill();
+          ctx.fillStyle = '#739b58'; ctx.beginPath(); ctx.arc(0,-z.r*.55,z.r*.68,0,Math.PI*2); ctx.fill();
+          ctx.fillStyle = '#d9f58a'; ctx.fillRect(-5,-z.r*.7,3,3); ctx.fillRect(2,-z.r*.7,3,3);
+          ctx.fillStyle = '#26362b'; ctx.fillRect(-z.r*.85,-1,5,10); ctx.fillRect(z.r*.5,-1,5,10);
+          // health strip
+          ctx.fillStyle = '#18251b'; ctx.fillRect(-z.r,-z.r-8,z.r*2,3);
+          ctx.fillStyle = '#e74c3c'; ctx.fillRect(-z.r,-z.r-8,Math.max(0,z.r*2*(z.hp/z.maxHp)),3);
+          ctx.restore();
+        });
+
+        // Detailed top-down survivor: shadow, boots, backpack, armour, helmet and visible rifle.
+        ctx.save();
+        ctx.translate(player.x, player.y);
+        const ang = Math.atan2(facing.y, facing.x);
+        ctx.rotate(ang);
+        // Ground shadow
+        ctx.fillStyle = 'rgba(0,0,0,.48)';
+        ctx.beginPath(); ctx.ellipse(0, 7, 22, 17, 0, 0, Math.PI*2); ctx.fill();
+        // Boots and legs
+        ctx.fillStyle = '#111923';
+        ctx.beginPath(); ctx.roundRect(-12, 7, 9, 12, 3); ctx.fill();
+        ctx.beginPath(); ctx.roundRect(4, 7, 9, 12, 3); ctx.fill();
+        ctx.fillStyle = '#7f8b98'; ctx.fillRect(-12, 14, 9, 3); ctx.fillRect(4, 14, 9, 3);
+        // Backpack behind torso
+        ctx.fillStyle = '#263d35'; ctx.strokeStyle = '#8aa69b'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.roundRect(-17, -9, 10, 19, 4); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = '#d9a441'; ctx.fillRect(-15, -4, 6, 2); ctx.fillRect(-15, 3, 6, 2);
+        // Arms
+        ctx.fillStyle = '#c99570';
+        ctx.beginPath(); ctx.roundRect(3, -13, 17, 7, 3); ctx.fill();
+        ctx.beginPath(); ctx.roundRect(3, 6, 15, 7, 3); ctx.fill();
+        // Main tactical body armour
+        ctx.fillStyle = skins[state.skin].color;
+        ctx.strokeStyle = '#e9f2f7'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.roundRect(-11, -13, 23, 27, 7); ctx.fill(); ctx.stroke();
+        // Vest plates and straps
+        ctx.fillStyle = '#26394b'; ctx.beginPath(); ctx.roundRect(-7, -9, 15, 18, 4); ctx.fill();
+        ctx.fillStyle = '#f5d773'; ctx.fillRect(-2, -7, 4, 14);
+        ctx.fillStyle = '#93a4b4'; ctx.fillRect(-7, -4, 15, 2); ctx.fillRect(-7, 3, 15, 2);
+        // Helmet and bright visor
+        ctx.fillStyle = '#172432'; ctx.strokeStyle = '#9fb6c9'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(2, -13, 10, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = '#66e5ff'; ctx.beginPath(); ctx.roundRect(4, -17, 8, 5, 2); ctx.fill();
+        ctx.fillStyle = '#fff'; ctx.fillRect(7, -16, 3, 1);
+        // Rifle held forward with barrel flash recoil animation
+        ctx.fillStyle = '#101820'; ctx.strokeStyle = '#718292'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.roundRect(13 - player.recoil*3, -5, 22, 7, 2); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = '#8d9ba7'; ctx.fillRect(25 - player.recoil*3, -3, 13, 3);
+        ctx.fillStyle = '#202a34'; ctx.fillRect(18, 2, 5, 7);
+        ctx.fillStyle = '#d5b56a'; ctx.fillRect(14, -2, 5, 2);
+        ctx.restore();
+
+        // Particles
+        particles.forEach(p => {
+          p.life -= dt;
+          ctx.fillStyle = p.color;
+          ctx.beginPath(); ctx.arc(p.x, p.y, p.size || 5, 0, Math.PI * 2); ctx.fill();
+        });
+        particles = particles.filter(p => p.life > 0);
+
+        ctx.restore();
+
+        // Floating notifications
+        floatingTexts.forEach(ft => {
+          ft.life -= dt;
+          ft.y -= 25 * dt;
+          ctx.fillStyle = ft.color;
+          ctx.font = 'bold 18px system-ui';
+          ctx.textAlign = 'center';
+          ctx.fillText(ft.text, ft.x, ft.y);
+        });
+        floatingTexts = floatingTexts.filter(ft => ft.life > 0);
+
+        attackButton.style.display = (state.running && !state.paused && !state.dead) ? 'block' : 'none';
+        if (!state.running || state.paused || state.dead) { attackHeld = false; attackRequested = false; }
+        updateUI();
+        requestAnimationFrame(loop);
+      }
+
+      window.addEventListener('keydown', e => {
+        const key = e.key.toLowerCase();
+        if (['arrowup','arrowdown','arrowleft','arrowright',' '].includes(key)) e.preventDefault();
+        keys[key] = true;
+        if (key === 'r') $('reloadBtn').click();
+        if (key === 'escape' && state.running && !state.dead) $('pauseBtn').click();
+      });
+      window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+
+      requestAnimationFrame(loop);
+    })();
+  </script>
 </body>
 </html>
